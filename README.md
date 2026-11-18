@@ -9,7 +9,7 @@
 Nature films that never stop moving, previews the moment you rest on a card, and your phone as a remote.<br>
 No ads. No account. One press to undo.
 
-[**Install**](#install) · [Features](#features) · [Set-up guide (PDF)](docs/MoLakaz-TV-Setup-Guide.pdf) · [Watch the film](docs/assets/molakaz-tv-film.mp4) · [Under the hood](#under-the-hood) · [Roadmap](ROADMAP.md)
+[**Install**](#install) · [Features](#features) · [Set-up guide (PDF)](docs/MoLakaz-TV-Setup-Guide.pdf) · [Watch the film](https://benosss.github.io/molakaz-tv/film.html) · [Under the hood](#under-the-hood) · [Roadmap](ROADMAP.md)
 
 [![Latest release](https://img.shields.io/github/v/release/benosss/molakaz-tv?style=flat-square&color=19B5C4&label=release)](https://github.com/benosss/molakaz-tv/releases/latest)
 [![Android TV 8+](https://img.shields.io/badge/Android%20TV-8.0%2B-3BA8F0?style=flat-square&logo=android&logoColor=white)](#install)
@@ -18,9 +18,9 @@ No ads. No account. One press to undo.
 [![MIT](https://img.shields.io/badge/license-MIT-0B4F6C?style=flat-square)](LICENSE)
 [![Made in Mauritius](https://img.shields.io/badge/made%20in-Mauritius%20🇲🇺-E8913A?style=flat-square)](#why)
 
-<a href="docs/assets/molakaz-tv-film.mp4"><img src="docs/assets/hero.webp" width="900" alt="MoLakaz TV on a TV: a nature film behind a glass bar of apps, a clock, and a row of things to continue watching; resting on a card plays its preview"></a>
+<a href="https://benosss.github.io/molakaz-tv/film.html"><img src="docs/assets/hero.webp" width="900" alt="MoLakaz TV on a TV: a nature film behind a glass bar of apps, a clock, and a row of things to continue watching; resting on a card plays its preview"></a>
 
-<sub>Real screens from a my.t 4K box. ▶ <a href="docs/assets/molakaz-tv-film.mp4">Watch the 40-second film</a>.</sub>
+<sub>Real screens from a my.t 4K box. ▶ <a href="https://benosss.github.io/molakaz-tv/film.html">Watch the 40-second film</a>.</sub>
 
 </div>
 

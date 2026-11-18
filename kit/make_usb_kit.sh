@@ -12,6 +12,8 @@ APK=${1:?app apk}; FILMS=${2:?films dir}; EXTRAS=${3:-}
 HERE=$(cd "$(dirname "$0")" && pwd); OUT="$HERE/out/MoLakaz"
 rm -rf "$OUT"; mkdir -p "$OUT/films" "$OUT/computer"
 cp "$APK" "$OUT/MoLakaz-TV.apk"
+# The set-up guide travels with the stick.
+[ -f "$HERE/../docs/MoLakaz-TV-Setup-Guide.pdf" ] && cp "$HERE/../docs/MoLakaz-TV-Setup-Guide.pdf" "$OUT/"
 rsync -a --exclude '*.part*' --exclude '.DS_Store' "$FILMS"/clips "$FILMS"/blur "$FILMS"/ambient "$FILMS"/scenes.json "$OUT/films/"
 if [ -n "$EXTRAS" ]; then
   [ -d "$EXTRAS/apps" ] && { mkdir -p "$OUT/apps"; cp "$EXTRAS"/apps/*.apk "$OUT/apps/"; }
