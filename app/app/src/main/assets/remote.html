@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TV Remote">
+<meta name="theme-color" content="#06121c">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>MoLakaz TV</title>
+<style>
+  :root {
+    --ink: #f4f8fb; --ink2: rgba(244,248,251,.62); --ink3: rgba(244,248,251,.38);
+    --glass: rgba(255,255,255,.075); --glass-hi: rgba(255,255,255,.14); --rim: rgba(255,255,255,.14);
+    --accent: #5eead4; --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+  body {
+    font: 15px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; color: var(--ink);
+    background: radial-gradient(120% 70% at 50% -10%, rgba(14,116,144,.55), transparent 60%),
+                radial-gradient(90% 60% at 100% 110%, rgba(30,64,175,.35), transparent 60%), #06121c;
+    display: flex; flex-direction: column; align-items: center;
+    padding: calc(env(safe-area-inset-top) + 12px) 18px calc(env(safe-area-inset-bottom) + 14px);
+    touch-action: manipulation;
+  }
+  .glass { background: var(--glass); border: 1px solid var(--rim); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 30px rgba(0,0,0,.25);
+           -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; touch-action: manipulation; }
+  .press { transition: transform .16s var(--ease), background-color .16s var(--ease), opacity .16s var(--ease); }
+  .press:active, .press.on { transform: scale(.92); background-color: var(--glass-hi); }
+
+  header { width: 100%; max-width: 420px; display: flex; align-items: center; gap: 12px; }
+  header .who { flex: 1; min-width: 0; }
+  header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); margin-top: 2px; }
+  .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; }
+  .status.ok::before { background: #4ade80; } .status.bad::before { background: #f87171; }
+  .round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+  svg { display: block; }
+
+  .hbtns { display: flex; gap: 8px; }
+  .gn { display: none; align-items: center; gap: 5px; margin-left: 8px; color: #c4b5fd; }
+  .gn.show { display: inline-flex; }
+  .now { width: 100%; max-width: 420px; margin-top: 14px; border-radius: 18px; padding: 10px 10px 10px 14px; display: none; flex-direction: column; gap: 6px; }
+  .now.show { display: flex; animation: rise .35s var(--ease); }
+  .now .nrow { display: flex; align-items: center; gap: 10px; }
+  .ctl { display: none; align-items: center; gap: 6px; padding-right: 4px; }
+  .ctl.show { display: flex; }
+  .ctl .round { width: 38px; height: 38px; }
+  .scrub { flex: 1; height: 30px; position: relative; touch-action: none; }
+  .scrub .tr { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .scrub .tr i { display: block; height: 100%; width: 0; background: var(--ink); }
+  .scrub b { position: absolute; top: 8px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--ink); left: 0; box-shadow: 0 1px 4px rgba(0,0,0,.4); transition: transform .15s; }
+  .scrub.drag b { transform: scale(1.35); }
+  .times { display: none; justify-content: space-between; font-size: 11px; color: var(--ink3); padding: 0 48px; margin-top: -6px; font-variant-numeric: tabular-nums; }
+  .times.show { display: flex; }
+  .now .t { flex: 1; min-width: 0; }
+  .now .t b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .now .t span { display: block; font-size: 12px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eq { display: flex; gap: 2px; align-items: center; height: 18px; }
+  .eq i { width: 3px; border-radius: 2px; background: var(--accent); height: 30%; animation: eq 1s ease-in-out infinite; }
+  .eq i:nth-child(2) { animation-delay: -.3s } .eq i:nth-child(3) { animation-delay: -.6s } .eq i:nth-child(4) { animation-delay: -.15s }
+  .paused .eq i { animation: none; height: 20%; opacity: .6 }
+  @keyframes eq { 0%,100% { height: 25% } 50% { height: 100% } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+
+  .apps { width: 100%; max-width: 420px; display: flex; justify-content: space-between; margin-top: 16px; }
+  .app { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--ink2); }
+  .app .ic { width: 58px; height: 58px; border-radius: 15px; overflow: hidden; background: rgba(255,255,255,.08); border: 1px solid var(--rim); }
+  .app img { width: 100%; height: 100%; object-fit: cover; }
+  .app span { width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .stage { flex: 1 1 0; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 150px; padding: 14px 0 30px; }
+  /* The circle takes whatever height is left (Safari with bars, or full-screen from the Home Screen). */
+  .pad { position: relative; height: min(330px, 84vw, 100%); aspect-ratio: 1; border-radius: 50%; touch-action: none;
+         background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.11), rgba(255,255,255,.035) 62%); }
+  .pad .chev { position: absolute; width: 26px; height: 26px; opacity: .55; transition: opacity .15s, transform .2s var(--ease); pointer-events: none; }
+  .pad .chev.on { opacity: 1; transform: scale(1.18); }
+  .c-up { top: 9%; left: 50%; margin-left: -13px } .c-down { bottom: 9%; left: 50%; margin-left: -13px; transform: rotate(180deg) }
+  .c-left { left: 9%; top: 50%; margin-top: -13px; transform: rotate(-90deg) } .c-right { right: 9%; top: 50%; margin-top: -13px; transform: rotate(90deg) }
+  .c-down.on { transform: rotate(180deg) scale(1.18) } .c-left.on { transform: rotate(-90deg) scale(1.18) } .c-right.on { transform: rotate(90deg) scale(1.18) }
+  .glow { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .25s var(--ease); }
+  .pad .ok { position: absolute; inset: 31%; border-radius: 50%; display: grid; place-items: center; font-weight: 600; letter-spacing: .1em; font-size: 14px;
+        pointer-events: none; transition: transform .16s var(--ease), background-color .16s; }
+  .pad .ok.on { transform: scale(.93); background-color: rgba(255,255,255,.2); }
+  .hint { position: absolute; bottom: -24px; left: -40px; right: -40px; text-align: center; font-size: 12px; color: var(--ink3); pointer-events: none; }
+  .seg { display: flex; gap: 2px; padding: 3px; border-radius: 13px; margin-top: 14px; }
+  .seg button { padding: 7px 16px; border-radius: 10px; font-size: 13px; color: var(--ink2); transition: background-color .2s var(--ease), color .2s; }
+  .seg button.sel { background: var(--glass-hi); color: var(--ink); }
+  .tpad { position: relative; width: min(360px, 90vw); height: min(330px, 100%); border-radius: 30px; touch-action: none; display: none; overflow: hidden;
+          background: radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.10), rgba(255,255,255,.03) 70%); }
+  .tpad.show { display: block; } .pad.hide { display: none; }
+  .tpad .dot { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; pointer-events: none; opacity: 0;
+               background: radial-gradient(circle, rgba(255,255,255,.32), rgba(255,255,255,0) 70%); transition: opacity .18s; }
+  .tpad .dot.on { opacity: 1; }
+  .tpad .tap { position: absolute; inset: 0; border-radius: 30px; background: rgba(255,255,255,.12); opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .tpad .thint { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--ink3); pointer-events: none; }
+
+  .row { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
+  .big { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; }
+  .vol { height: 64px; border-radius: 32px; display: flex; align-items: center; overflow: hidden; }
+  .vol button { width: 58px; height: 64px; display: grid; place-items: center; }
+  .vol .lvl { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .vol .lvl i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s var(--ease); }
+
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(env(safe-area-inset-bottom) + 14px); border-radius: 22px 22px 0 0;
+           transform: translateY(110%); transition: transform .38s var(--ease); display: flex; gap: 10px; align-items: center; z-index: 5;
+           background: rgba(14,26,38,.86); }
+  .sheet.open { transform: none; }
+  .sheet input { flex: 1; height: 46px; border-radius: 14px; border: 1px solid var(--rim); background: rgba(255,255,255,.08); color: var(--ink);
+                 font: 17px -apple-system, system-ui, sans-serif; padding: 0 14px; outline: none; -webkit-user-select: text; user-select: text; }
+  .sheet button { height: 46px; padding: 0 16px; border-radius: 14px; background: var(--ink); color: #06121c; font-weight: 600; }
+  .panel { position: fixed; left: 0; right: 0; bottom: 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 16px); border-radius: 24px 24px 0 0;
+           transform: translateY(110%); transition: transform .38s var(--ease); z-index: 5; background: rgba(14,26,38,.92); }
+  .panel.open { transform: none; }
+  .panel h2 { margin: 0 0 4px; font-size: 19px; } .panel p { margin: 0 0 14px; font-size: 13px; color: var(--ink2); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid button { height: 50px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid var(--rim); font-weight: 600; }
+  .grid button.sel { background: #7c6cf0; border-color: transparent; }
+  .grid button.off { grid-column: 1 / -1; background: rgba(229,72,77,.85); border-color: transparent; }
+  .apps2 { display: flex; gap: 8px; margin-bottom: 10px; }
+  .apps2 button { flex: 1; height: 40px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1px solid var(--rim); font-weight: 600; font-size: 14px; }
+  .apps2 button.sel { background: var(--ink); color: #06121c; }
+  .srow { display: flex; gap: 8px; }
+  .srow input { flex: 1; height: 48px; border-radius: 14px; border: 1px solid var(--rim); background: rgba(255,255,255,.08); color: var(--ink);
+                font: 17px -apple-system, system-ui, sans-serif; padding: 0 14px; outline: none; -webkit-user-select: text; user-select: text; }
+  .srow button { height: 48px; padding: 0 16px; border-radius: 14px; background: var(--ink); color: #06121c; font-weight: 600; }
+  .shade { position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 4; }
+  .shade.on { opacity: 1; pointer-events: auto; }
+  .toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 64px); transform: translate(-50%, -12px); opacity: 0; pointer-events: none;
+           padding: 10px 14px; border-radius: 14px; font-size: 13px; max-width: 88vw; text-align: center; transition: opacity .25s, transform .3s var(--ease); z-index: 6; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .a2hs { width: 100%; max-width: 420px; margin-top: 12px; border-radius: 16px; padding: 10px 8px 10px 14px; font-size: 13px;
+          display: none; gap: 10px; align-items: center; }
+  .a2hs.show { display: flex; } .a2hs span { flex: 1; color: var(--ink2) } .a2hs b { color: var(--ink) }
+  #hap { position: fixed; opacity: 0; pointer-events: none; left: -100px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="who"><h1 id="tv">TV Remote</h1><div class="status" id="dot"><span id="st">Connecting…</span><span class="gn" id="gn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg><span id="gnt"></span></span></div></div>
+    <div class="hbtns">
+    <button class="round glass press" id="sr" aria-label="Search"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+    <button class="round glass press" id="kb" aria-label="Keyboard"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M6.5 14h11"/></svg></button>
+    <button class="round glass press" id="pw" aria-label="Standby"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M6.6 7.2a7.5 7.5 0 1010.8 0"/></svg></button>
+    </div>
+  </header>
+
+  <div class="a2hs glass" id="a2hs"><span>Tap <b>Share</b> then <b>Add to Home Screen</b> to keep this remote one tap away.</span><button class="round press" id="a2x" aria-label="Dismiss">✕</button></div>
+
+  <div class="now glass" id="now">
+    <div class="nrow"><div class="eq"><i></i><i></i><i></i><i></i></div><div class="t"><b id="nt"></b><span id="ns"></span></div>
+    <button class="round press" id="np" aria-label="Play or pause"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path id="npi" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button></div>
+    <div class="ctl" id="ctl">
+      <button class="round press" id="prev" aria-label="Previous"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.2v14H6zM20 5.5v13L9.5 12z"/></svg></button>
+      <div class="scrub" id="scrub"><div class="tr"><i id="fill"></i></div><b id="knob"></b></div>
+      <button class="round press" id="next" aria-label="Next"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.8 5H18v14h-2.2zM4 5.5v13L14.5 12z"/></svg></button>
+    </div>
+    <div class="times" id="times"><span id="tc">0:00</span><span id="td">0:00</span></div>
+  </div>
+
+  <div class="apps" id="apps"></div>
+
+  <div class="seg glass" id="seg"><button data-mode="pad">Buttons</button><button data-mode="touch">Touchpad</button></div>
+  <div class="stage">
+    <div class="tpad glass" id="tpad"><div class="tap" id="tapfx"></div><div class="dot" id="tdot"></div><div class="thint">Swipe to move · tap to select · flick to go further</div></div>
+    <div class="pad glass" id="pad">
+      <div class="glow" id="glow"></div>
+      <svg class="chev c-up" data-d="up" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+      <svg class="chev c-down" data-d="down" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+      <svg class="chev c-left" data-d="left" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+      <svg class="chev c-right" data-d="right" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+      <div class="ok glass" id="ok">OK</div>
+      <div class="hint">Tap or swipe · hold to repeat</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="big glass press" data-key="4" aria-label="Back"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg></button>
+    <button class="big glass press" data-key="3" aria-label="Home"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 10.5L12 3.5l8.5 7V20a1 1 0 01-1 1h-5v-6h-5v6h-5a1 1 0 01-1-1z"/></svg></button>
+    <button class="big glass press" data-key="85" aria-label="Play or pause"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5.5v13l8-6.5zM14 5h3v14h-3zM19 5h2.5v14H19z"/></svg></button>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div class="vol glass">
+      <button class="press" data-vol="down" aria-label="Volume down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+      <div class="lvl"><i id="lvl"></i></div>
+      <button class="press" data-vol="up" aria-label="Volume up"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+    </div>
+    <button class="big glass press" data-vol="mute" aria-label="Mute"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+    <button class="big glass press" id="moon" aria-label="Goodnight"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg></button>
+  </div>
+
+  <div class="sheet" id="sheet"><input id="txt" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Type on the TV…" enterkeyhint="search"><button id="done">Done</button></div>
+  <div class="shade" id="shade"></div>
+  <div class="panel" id="gsheet"><h2>Goodnight</h2><p id="gsub">The sound fades and the screen dims in the last minute, then the TV goes to standby.</p>
+    <div class="grid" id="ggrid"></div></div>
+  <div class="panel" id="ssheet"><h2>Search</h2><p>Tip: tap the microphone on your keyboard to say it.</p>
+    <div class="apps2" id="sapps"></div>
+    <div class="srow"><input id="sq" type="search" autocomplete="off" autocorrect="on" enterkeyhint="search" placeholder="What do you want to watch?"><button id="sgo">Go</button></div></div>
+  <div class="toast glass" id="toast"></div>
+  <label id="hap"><input type="checkbox" switch id="hapi"></label>
+
+<script>
+const $ = id => document.getElementById(id);
+const K = { up: 19, down: 20, left: 21, right: 22, ok: 23, enter: 66, del: 67 };
+const HOSTURL = 'http://lagoon.local:8080';
+
+// Where the TV is. '' = the address this page came from. If the router gives the TV a new address while this page is
+// open (or saved), the page finds it again (by name, then by asking every address on the network) and talks to it there.
+// The page always comes from the TV itself, so start there; another address is only used while this one fails.
+let base = ''; localStorage.removeItem('tvBase');
+const api = p => base + p;
+let fails = 0, scanning = false;
+function ping(b, ms) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  return fetch(b + '/ping', { signal: c.signal, cache: 'no-store' }).then(r => r.json())
+    .then(j => { clearTimeout(t); return (!localStorage.tvId || j.id === localStorage.tvId) ? j : null; }).catch(() => null);
+}
+async function findTv() {
+  if (scanning) return; scanning = true;
+  setStatus('', 'Looking for the TV…');
+  const hit = b => { base = b === location.origin ? '' : b; fails = 0; scanning = false;
+    if (base) toast('Found the TV at its new address.'); refresh(); };
+  // 1. Where this page came from (the TV was only restarting), 2. the last address it reported, 3. its name, 4. every address.
+  if (await ping(location.origin, 2500)) return hit(location.origin);
+  if (localStorage.tvIp && await ping(`http://${localStorage.tvIp}:8080`, 2000)) return hit(`http://${localStorage.tvIp}:8080`);
+  if (await ping(HOSTURL, 2500)) return hit(HOSTURL);
+  const m = /^(\d+\.\d+\.\d+)\.\d+$/.exec(localStorage.tvIp || location.hostname);
+  if (m) for (let i = 1; i < 255; i += 32) {
+    const batch = []; for (let k = i; k < Math.min(i + 32, 255); k++) batch.push(`http://${m[1]}.${k}:8080`);
+    const res = await Promise.all(batch.map(b => ping(b, 1500).then(j => j ? b : null)));
+    const b = res.find(Boolean); if (b) return hit(b);
+  }
+  scanning = false; setStatus('bad', "Can't find the TV. Is it switched on?");
+}
+function failed() { setStatus('bad', "Can't reach the TV"); if (++fails >= 2) findTv(); }
+
+// Ordered queue: presses reach the TV in the order they were made.
+let chain = Promise.resolve(), okSince = 0;
+function setStatus(state, text) { $('dot').className = 'status ' + state; $('st').textContent = text; }
+function post(url, body) {
+  chain = chain.then(() => fetch(api(url), { method: 'POST', body, cache: 'no-store' })
+    .then(r => r.json()).then(j => { fails = 0; if (j.ok === false) notReady(); else setStatus('ok', 'Connected'); return j; })
+    .catch(() => { failed(); return {}; }));
+  return chain;
+}
+let warned = 0;
+function notReady(j) {
+  setStatus('', 'Setting up…');
+  if (Date.now() - warned > 15000) { warned = Date.now(); toast('First time only: on the TV, tick “Always allow” and press OK on the “Allow USB debugging?” box.'); }
+}
+const key = (code, a = 'tap') => post(`/key?c=${code}&a=${a}`);
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('show'), 4200); }
+// iOS 18+: toggling a native switch gives a light haptic tick.
+const hap = () => { try { $('hap').click(); } catch (e) {} };
+
+// ---------- D-pad: tap a side or the centre, swipe to move, hold to repeat ----------
+const pad = $('pad'), glow = $('glow'), ok = $('ok');
+const chev = d => pad.querySelector(`.chev[data-d="${d}"]`);
+let g = null;
+function zone(x, y) {
+  const r = pad.getBoundingClientRect(), dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+  if (Math.hypot(dx, dy) < r.width * 0.2) return 'ok';
+  return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+}
+function flash(d) {
+  if (d === 'ok') { ok.classList.add('on'); setTimeout(() => ok.classList.remove('on'), 140); return; }
+  const c = chev(d); c.classList.add('on'); setTimeout(() => c.classList.remove('on'), 160);
+  const at = { up: '50% 8%', down: '50% 92%', left: '8% 50%', right: '92% 50%' }[d];
+  glow.style.background = `radial-gradient(circle at ${at}, rgba(255,255,255,.22), transparent 42%)`;
+  glow.style.opacity = 1; clearTimeout(glow._t); glow._t = setTimeout(() => glow.style.opacity = 0, 180);
+}
+pad.addEventListener('pointerdown', e => {
+  pad.setPointerCapture(e.pointerId);
+  const d = zone(e.clientX, e.clientY);
+  g = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, d, swiped: false, held: false };
+  if (d === 'ok') ok.classList.add('on'); else chev(d).classList.add('on');
+  g.hold = setTimeout(() => {           // held still: press and keep repeating, like a real remote
+    if (!g || g.swiped) return;
+    g.held = true; hap(); key(K[g.d], 'down');
+    g.rep = setInterval(() => key(K[g.d], 'repeat'), g.d === 'ok' ? 400 : 110);
+  }, 380);
+});
+pad.addEventListener('pointermove', e => {
+  if (!g || g.held) return;
+  const step = 38, dx = e.clientX - g.lx, dy = e.clientY - g.ly;
+  if (!g.swiped && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 14) return;
+  if (!g.swiped) { g.swiped = true; clearTimeout(g.hold); ok.classList.remove('on'); pad.querySelectorAll('.chev').forEach(c => c.classList.remove('on')); }
+  if (Math.abs(dx) >= step || Math.abs(dy) >= step) {
+    const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    g.lx = e.clientX; g.ly = e.clientY; flash(d); hap(); key(K[d]);
+  }
+});
+function end() {
+  if (!g) return;
+  clearTimeout(g.hold); clearInterval(g.rep);
+  ok.classList.remove('on'); pad.querySelectorAll('.chev').forEach(c => c.classList.remove('on'));
+  if (g.held) key(K[g.d], 'up');
+  else if (!g.swiped) { flash(g.d); hap(); key(K[g.d]); }
+  g = null;
+}
+pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+
+// ---------- buttons ----------
+document.querySelectorAll('[data-key]').forEach(b => b.addEventListener('click', () => { hap(); key(+b.dataset.key); }));
+document.querySelectorAll('[data-vol]').forEach(b => b.addEventListener('click', () => {
+  hap(); post(`/vol?d=${b.dataset.vol}`).then(j => { if (j && j.max) $('lvl').style.width = (100 * j.vol / j.max) + '%'; });
+}));
+$('np').addEventListener('click', () => { hap(); post('/media?a=toggle'); });
+$('prev').addEventListener('click', () => { hap(); post('/media?a=prev'); });
+$('next').addEventListener('click', () => { hap(); post('/media?a=next'); });
+$('pw').addEventListener('click', () => {
+  if (!confirm('Put the TV in standby? Wake it with the TV\'s own remote.')) return;
+  hap(); post('/power').then(j => { if (j && j.ok) toast('Standby. Good night!'); });
+});
+
+// ---------- sheets ----------
+const shade = $('shade');
+function openPanel(id) { closePanels(); $(id).classList.add('open'); shade.classList.add('on'); }
+function closePanels() { document.querySelectorAll('.panel.open').forEach(p => p.classList.remove('open')); shade.classList.remove('on'); $('sq').blur(); }
+shade.addEventListener('click', closePanels);
+
+let gnState = { on: false, min: 0 };
+const GN = [[15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 hour'], [90, '1 h 30'], [120, '2 hours']];
+function drawGn() {
+  $('ggrid').innerHTML = GN.map(([m, l]) => `<button class="press" data-m="${m}">${l}</button>`).join('') +
+    (gnState.on ? '<button class="press off" data-m="0">Turn off</button>' : '');
+  $('gsub').textContent = gnState.on ? `On: the TV goes to standby in ${gnState.min} min.` :
+    'The sound fades and the screen dims in the last minute, then the TV goes to standby.';
+  $('ggrid').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    hap(); post(`/goodnight?m=${b.dataset.m}`).then(j => { if (j && j.goodnight) showGn(j.goodnight); closePanels();
+      toast(+b.dataset.m ? `Goodnight in ${b.textContent}.` : 'Goodnight timer off.'); });
+  }));
+}
+function showGn(g) { gnState = g || { on: false }; $('gn').classList.toggle('show', !!gnState.on); $('gnt').textContent = gnState.on ? `${gnState.min} min` : ''; }
+$('moon').addEventListener('click', () => { hap(); drawGn(); openPanel('gsheet'); });
+
+let searchApp = localStorage.searchApp || 'youtube', searchApps = ['youtube', 'spotify'];
+function drawSearch() {
+  if (!searchApps.includes(searchApp)) searchApp = searchApps[0];
+  $('sapps').innerHTML = searchApps.map(a => `<button class="press ${a === searchApp ? 'sel' : ''}" data-a="${a}">${a === 'youtube' ? 'YouTube' : 'Spotify'}</button>`).join('');
+  $('sapps').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { searchApp = localStorage.searchApp = b.dataset.a; drawSearch(); $('sq').focus(); }));
+  $('sq').placeholder = searchApp === 'spotify' ? 'Artist, song or podcast' : 'What do you want to watch?';
+}
+function doSearch() {
+  const q = $('sq').value.trim(); if (!q) return;
+  hap(); post(`/search?app=${searchApp}&q=${encodeURIComponent(q)}`).then(j => { if (j && j.ok) { toast(`Searching ${searchApp === 'spotify' ? 'Spotify' : 'YouTube'} for “${q}”`); $('sq').value = ''; closePanels(); } });
+}
+$('sr').addEventListener('click', () => { hap(); drawSearch(); openPanel('ssheet'); setTimeout(() => $('sq').focus(), 80); });
+$('sgo').addEventListener('click', doSearch);
+$('sq').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+
+// ---------- touchpad (Apple TV style): swipe to move, tap to select, flick to keep going ----------
+const tp = $('tpad'), tdot = $('tdot');
+let tg = null;
+function setMode(m) {
+  localStorage.padMode = m;
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
+  tp.classList.toggle('show', m === 'touch'); $('pad').classList.toggle('hide', m === 'touch');
+}
+document.querySelectorAll('#seg button').forEach(b => b.addEventListener('click', () => { hap(); setMode(b.dataset.mode); }));
+setMode(localStorage.padMode || 'pad');
+function dotAt(e) { const r = tp.getBoundingClientRect(); tdot.style.left = (e.clientX - r.left) + 'px'; tdot.style.top = (e.clientY - r.top) + 'px'; }
+tp.addEventListener('pointerdown', e => {
+  tp.setPointerCapture(e.pointerId); dotAt(e); tdot.classList.add('on');
+  tg = { x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, t0: performance.now(), moved: false, s: [[performance.now(), e.clientX, e.clientY]] };
+});
+tp.addEventListener('pointermove', e => {
+  if (!tg) return; dotAt(e);
+  const now = performance.now(); tg.s.push([now, e.clientX, e.clientY]); while (tg.s.length > 2 && now - tg.s[0][0] > 90) tg.s.shift();
+  if (!tg.moved && Math.hypot(e.clientX - tg.x0, e.clientY - tg.y0) < 10) return;
+  tg.moved = true;
+  const dx = e.clientX - tg.lx, dy = e.clientY - tg.ly, step = 46;
+  if (Math.abs(dx) >= step || Math.abs(dy) >= step) {
+    const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    tg.lx = e.clientX; tg.ly = e.clientY; hap(); key(K[d]);
+  }
+});
+function tpEnd() {
+  if (!tg) return; tdot.classList.remove('on');
+  if (!tg.moved && performance.now() - tg.t0 < 400) {
+    hap(); key(K.ok); const f = $('tapfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 120);
+  } else if (tg.moved && tg.s.length >= 2) {
+    const [t1, x1, y1] = tg.s[0], [t2, x2, y2] = tg.s[tg.s.length - 1], dt = Math.max(16, t2 - t1);
+    const vx = (x2 - x1) / dt, vy = (y2 - y1) / dt, v = Math.max(Math.abs(vx), Math.abs(vy));
+    if (v > 0.8) {   // a flick: a few more moves, slowing down like momentum
+      const d = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : (vy > 0 ? 'down' : 'up');
+      const extra = Math.min(5, Math.round((v - 0.5) * 3)); let t = 0;
+      for (let i = 0; i < extra; i++) { t += 70 + i * 45; setTimeout(() => key(K[d]), t); }
+    }
+  }
+  tg = null;
+}
+tp.addEventListener('pointerup', tpEnd); tp.addEventListener('pointercancel', tpEnd);
+
+// ---------- scrub bar ----------
+let np = null, npAt = 0, dragging = false;
+const fmt = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function npPos() { if (!np) return 0; return Math.min(np.dur, np.pos + (np.playing ? Date.now() - npAt : 0)); }
+function drawScrub(frac) {
+  if (!np || !(np.dur > 0)) return;
+  const f = frac != null ? frac : npPos() / np.dur;
+  $('fill').style.width = (f * 100) + '%'; $('knob').style.left = (f * 100) + '%';
+  $('tc').textContent = fmt(f * np.dur); $('td').textContent = fmt(np.dur);
+}
+setInterval(() => { if (!dragging) drawScrub(); }, 500);
+const scrub = $('scrub');
+const fracAt = e => { const r = scrub.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
+scrub.addEventListener('pointerdown', e => { if (!np || !(np.dur > 0)) return; scrub.setPointerCapture(e.pointerId); dragging = true; scrub.classList.add('drag'); drawScrub(fracAt(e)); });
+scrub.addEventListener('pointermove', e => { if (dragging) drawScrub(fracAt(e)); });
+function scrubEnd(e) {
+  if (!dragging) return; dragging = false; scrub.classList.remove('drag');
+  const ms = Math.round(fracAt(e) * np.dur); np.pos = ms; npAt = Date.now(); hap(); post(`/media?a=seek&ms=${ms}`);
+}
+scrub.addEventListener('pointerup', scrubEnd); scrub.addEventListener('pointercancel', scrubEnd);
+
+// ---------- typing ----------
+const sheet = $('sheet'), txt = $('txt'); let last = '';
+$('kb').addEventListener('click', () => { hap(); last = ''; txt.value = ''; sheet.classList.add('open'); setTimeout(() => txt.focus(), 60); });
+$('done').addEventListener('click', () => { txt.blur(); sheet.classList.remove('open'); });
+txt.addEventListener('input', () => {
+  const v = txt.value; let i = 0;
+  while (i < last.length && i < v.length && last[i] === v[i]) i++;
+  for (let n = last.length - i; n > 0; n--) key(K.del);
+  const add = v.slice(i); if (add) post('/text', add);
+  last = v;
+});
+txt.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); key(K.enter); }
+  else if (e.key === 'Backspace' && !txt.value) key(K.del);
+});
+
+// ---------- state: TV name, apps, now playing ----------
+let appsDrawn = false;
+function refresh() {
+  fetch(api('/state'), { cache: 'no-store' }).then(r => r.json()).then(s => {
+    fails = 0; setStatus('ok', 'Connected');
+    if (s.id) localStorage.tvId = s.id;
+    if (s.ip) localStorage.tvIp = s.ip;
+    showGn(s.goodnight);
+    if (s.search && s.search.length) searchApps = s.search;
+    $('tv').textContent = s.tv || 'TV Remote';
+    if (!appsDrawn && s.apps) {
+      appsDrawn = true;
+      $('apps').innerHTML = s.apps.slice(0, 5).map(a => `<button class="app press" data-pkg="${a.pkg}"><div class="ic"><img src="${api('/app.png?pkg=' + encodeURIComponent(a.pkg))}" alt=""></div><span>${a.name}</span></button>`).join('');
+      $('apps').querySelectorAll('.app').forEach(b => b.addEventListener('click', () => { hap(); post(`/launch?pkg=${encodeURIComponent(b.dataset.pkg)}`); }));
+    }
+    const n = s.now, el = $('now');
+    if (n && n.title) {
+      $('nt').textContent = n.title; $('ns').textContent = [n.sub, n.app].filter(Boolean).join(' · ');
+      $('npi').setAttribute('d', n.playing ? 'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z' : 'M8 5.5v13l11-6.5z');
+      el.classList.toggle('paused', !n.playing); el.classList.add('show');
+      if (!dragging) { np = n; npAt = Date.now(); }
+      const timed = n.dur > 0;
+      $('ctl').classList.toggle('show', timed || n.canSkip); $('times').classList.toggle('show', timed);
+      scrub.style.visibility = timed ? 'visible' : 'hidden';
+      $('prev').style.visibility = $('next').style.visibility = n.canSkip ? 'visible' : 'hidden';
+      drawScrub();
+    } else { el.classList.remove('show'); np = null; }
+  }).catch(failed);
+}
+refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 2500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+// Suggest saving to the Home Screen (once), unless already opened from there.
+if (!navigator.standalone && !localStorage.a2hsSeen) $('a2hs').classList.add('show');
+$('a2x').addEventListener('click', () => { localStorage.a2hsSeen = 1; $('a2hs').classList.remove('show'); });
+// ?preview: a clean screenshot for the TV's Phone remote page (no Home Screen hint).
+if (location.search.includes('preview')) { $('a2hs').classList.remove('show'); document.body.style.paddingTop = '58px'; }
+</script>
+</body>
+</html>

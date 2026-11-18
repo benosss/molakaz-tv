@@ -1,0 +1,10 @@
+name: An idea
+description: Something MoLakaz TV could do
+labels: [idea]
+body:
+  - type: textarea
+    attributes:
+      label: What would you like it to do?
+      description: And when would you use it? Pictures or sketches welcome.
+    validations:
+      required: true

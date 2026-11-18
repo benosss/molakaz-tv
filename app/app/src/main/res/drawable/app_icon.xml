@@ -1,0 +1,21 @@
+<!-- MoLakaz TV ("my home" in Mauritian Creole): a house on the lagoon, under the sun. Same artwork as brand/icon.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="96dp" android:height="96dp" android:viewportWidth="96" android:viewportHeight="96">
+    <group>
+        <clip-path android:pathData="M22,0h52a22,22 0,0 1,22 22v52a22,22 0,0 1,-22 22H22A22,22 0,0 1,0 74V22A22,22 0,0 1,22 0z"/>
+        <path android:pathData="M0,0h96v96h-96z">
+            <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="0" android:startY="0" android:endX="0" android:endY="96">
+                <item android:offset="0" android:color="#FF3BA8F0"/><item android:offset="0.58" android:color="#FF19B5C4"/><item android:offset="1" android:color="#FF0E6C86"/>
+            </gradient></aapt:attr>
+        </path>
+        <path android:fillColor="#FFFFF3CC" android:pathData="M70,16.5a7.5,7.5 0,1 0,0.01 0z"/>
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M27,69 V47.5 Q27,45.6 28.5,44.4 L45.6,30.6 Q48,28.7 50.4,30.6 L67.5,44.4 Q69,45.6 69,47.5 V69 Z M43.5,69 V56 Q43.5,51.5 48,51.5 Q52.5,51.5 52.5,56 V69 Z"/>
+        <path android:pathData="M0,67 C14,61.5 28,72.5 48,67 S82,61.5 96,67 V96 H0 Z">
+            <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="0" android:startY="62" android:endX="0" android:endY="96">
+                <item android:offset="0" android:color="#FF0E7C99"/><item android:offset="1" android:color="#FF08445E"/>
+            </gradient></aapt:attr>
+        </path>
+        <path android:strokeColor="#BFFFFFFF" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M0,67 C14,61.5 28,72.5 48,67 S82,61.5 96,67"/>
+    </group>
+</vector>

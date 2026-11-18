@@ -1,0 +1,21 @@
+name: Something isn't right
+description: A bug, a glitch, or something that looks off on your TV
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead. A photo of the TV helps a lot.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Your box or TV
+      placeholder: e.g. my.t 4K box (HE2704), Android 8.0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: MoLakaz TV version
+      description: Settings › About & credits shows it.
+      placeholder: e.g. 1.0.0

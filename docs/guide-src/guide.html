@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MoLakaz TV — Setting up a TV box</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --sea: #0E6C86; --sky: #19B5C4; --blue: #2F80ED; --ink: #10222E; --ink2: #4A5B66; --line: #DCE6EB; --bg: #F5F9FB; --ok: #1FA855; --warn: #E8913A; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 16mm 16mm 14mm; position: relative; overflow: hidden; page-break-after: always; background: #fff; }
+  .page:last-child { page-break-after: auto; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+  p { margin: 0; }
+  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 9pt; color: #8A9AA4; }
+
+  /* cover */
+  .cover { padding: 0; background: linear-gradient(170deg, #3BA8F0 0%, #19B5C4 46%, #0E6C86 100%); color: #fff; }
+  .cover .top { padding: 22mm 18mm 0; }
+  .cover .logo { width: 30mm; height: 30mm; border-radius: 7mm; box-shadow: 0 6mm 14mm rgba(0,40,60,.35); }
+  .cover h1 { font-size: 40pt; margin-top: 10mm; font-weight: 800; }
+  .cover h1 span { font-weight: 300; }
+  .cover .sub { font-size: 19pt; margin-top: 3mm; font-weight: 500; opacity: .95; }
+  .cover .meta { display: flex; gap: 4mm; margin-top: 8mm; }
+  .cover .pill { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 2.4mm 5mm; border-radius: 20mm; font-size: 12.5pt; font-weight: 600; }
+  .cover .shot { position: absolute; left: 18mm; right: 18mm; bottom: 26mm; border-radius: 5mm; overflow: hidden; box-shadow: 0 8mm 20mm rgba(0,30,50,.45); border: 2.5mm solid #10161b; }
+  .cover .shot img { display: block; width: 100%; }
+  .cover .made { position: absolute; left: 18mm; bottom: 12mm; font-size: 11pt; opacity: .9; }
+
+  /* content */
+  .kicker { font-size: 10.5pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--sea); }
+  .title { font-size: 24pt; font-weight: 800; margin-top: 2mm; }
+  .lead { font-size: 13pt; color: var(--ink2); margin-top: 3mm; line-height: 1.45; }
+  .need { margin-top: 7mm; display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .need div { background: var(--bg); border: 1px solid var(--line); border-radius: 4mm; padding: 4.5mm 5mm; font-size: 12.5pt; line-height: 1.35; display: flex; gap: 3.5mm; align-items: flex-start; }
+  .need b { display: block; }
+  .tick { flex: none; width: 7mm; height: 7mm; border-radius: 2mm; border: 2px solid var(--sky); margin-top: .3mm; }
+  .note { margin-top: 6mm; background: #EAF7F1; border: 1px solid #BFE7D2; border-radius: 4mm; padding: 4.5mm 5mm; font-size: 12pt; line-height: 1.45; }
+  .note.warn { background: #FFF5EA; border-color: #F6D3AE; }
+  .note b { color: #116C3B; }
+  .note.warn b { color: #9A520D; }
+
+  .step { display: grid; grid-template-columns: 13mm 1fr; gap: 5mm; margin-top: 7mm; }
+  .num { width: 13mm; height: 13mm; border-radius: 50%; background: linear-gradient(160deg, #3BA8F0, #0E6C86); color: #fff; font-size: 17pt; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .step h2 { font-size: 17pt; font-weight: 800; margin-top: 2.2mm; }
+  .step .txt { font-size: 12.5pt; line-height: 1.5; color: var(--ink); margin-top: 2mm; }
+  .step .txt ol { margin: 2mm 0 0; padding-left: 6mm; }
+  .step .txt li { margin: 1.2mm 0; }
+  .path { display: inline-block; background: var(--bg); border: 1px solid var(--line); border-radius: 2mm; padding: .3mm 2mm; font-weight: 600; white-space: nowrap; }
+  .key { display: inline-flex; align-items: center; justify-content: center; min-width: 7mm; height: 6.5mm; padding: 0 1.8mm; border-radius: 1.8mm; background: #10222E; color: #fff; font-size: 10pt; font-weight: 700; vertical-align: 1px; }
+  .shot2 { margin-top: 4mm; border-radius: 3mm; overflow: hidden; border: 1.8mm solid #10161b; box-shadow: 0 2.5mm 7mm rgba(0,30,50,.18); }
+  .shot2 img { display: block; width: 100%; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .cap { font-size: 10pt; color: var(--ink2); margin-top: 1.5mm; text-align: center; }
+
+  .tour { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 6mm; }
+  .tour .t { background: var(--bg); border: 1px solid var(--line); border-radius: 4mm; overflow: hidden; }
+  .tour .t img { display: block; width: 100%; }
+  .tour .t div { padding: 3.5mm 4.5mm 4.5mm; font-size: 11.5pt; line-height: 1.45; }
+  .tour .t b { display: block; font-size: 12.5pt; margin-bottom: .8mm; }
+
+  table.fix { width: 100%; border-collapse: collapse; margin-top: 5mm; font-size: 11.5pt; line-height: 1.4; }
+  table.fix td { border-top: 1px solid var(--line); padding: 3.2mm 2mm; vertical-align: top; }
+  table.fix td:first-child { width: 38%; font-weight: 700; }
+  .phone { display: grid; grid-template-columns: 46mm 1fr; gap: 7mm; align-items: center; margin-top: 6mm; }
+  .phone img { width: 46mm; border-radius: 6mm; border: 2mm solid #10161b; display: block; }
+
+  /* fit fixes */
+  .tour .t img { height: 36mm; object-fit: cover; object-position: left top; }
+  .tour .t div { font-size: 10.5pt; padding: 3mm 4mm 3.5mm; }
+  .tour { gap: 4mm; margin-top: 5mm; }
+  .phone { grid-template-columns: 34mm 1fr; margin-top: 5mm; }
+  .phone img { width: 34mm; border-radius: 5mm; border-width: 1.5mm; }
+  .p7 table.fix { font-size: 10.5pt; }
+  .p7 table.fix td { padding: 2.4mm 2mm; }
+  .p7 ol { font-size: 11pt !important; line-height: 1.45 !important; }
+  .p2 .need div { padding: 3.5mm 4mm; font-size: 11.5pt; }
+  .p2 table.fix td { padding: 2.2mm 2mm; font-size: 11pt; }
+  .p2 .note { margin-top: 4.5mm; padding: 3.5mm 4.5mm; font-size: 11pt; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="page cover">
+  <div class="top">
+    <img class="logo" src="img/icon.svg">
+    <h1>MoLakaz <span>TV</span></h1>
+    <p class="sub">Setting up a TV box — the easy guide</p>
+    <div class="meta"><span class="pill">About 15 minutes</span><span class="pill">No computer needed</span><span class="pill">Nothing is deleted</span></div>
+  </div>
+  <div class="shot"><img src="img/home.jpg"></div>
+  <p class="made">Made in Mauritius · github.com/benosss/molakaz-tv</p>
+</section>
+
+<!-- 2. Before you start -->
+<section class="page p2">
+  <p class="kicker">Before you start</p>
+  <h1 class="title">What you need</h1>
+  <p class="lead">MoLakaz TV replaces the box's home screen with a calm one: nature films in the background, your
+    apps on the left, and what you were watching at the bottom. Everything else on the box stays as it is.</p>
+  <div class="need">
+    <div><span class="tick"></span><span><b>The MoLakaz USB stick</b>It has a folder called MoLakaz on it.</span></div>
+    <div><span class="tick"></span><span><b>The box's remote</b>All the steps use only the arrows, OK, Back and Home.</span></div>
+    <div><span class="tick"></span><span><b>The box on the internet</b>Wi-Fi or cable, like for Netflix and YouTube.</span></div>
+    <div><span class="tick"></span><span><b>A Google account on the box</b>Already there if Google Play opens. Needed once, for step 2.</span></div>
+  </div>
+  <div class="note"><b>Good to know.</b> MoLakaz TV doesn't delete anything and doesn't need a password. The old home screen is only switched
+    off, and one option in MoLakaz TV's Settings brings it back (see the last page).</div>
+  <div class="note warn"><b>Works on</b> the my.t 4K box and most Android TV boxes (Android 8 or newer). It does not
+    work on Samsung or LG TVs themselves — plug an Android TV box into them instead.</div>
+  <h2 style="font-size:16pt;margin-top:9mm">The steps</h2>
+  <table class="fix" style="margin-top:2mm">
+    <tr><td>1 · Plug in the USB stick</td><td>10 seconds</td></tr>
+    <tr><td>2 · Install X-plore from Google Play</td><td>2 minutes — a free file manager, to open the stick</td></tr>
+    <tr><td>3 · Turn on USB debugging</td><td>2 minutes — lets MoLakaz TV set itself up</td></tr>
+    <tr><td>4 · Install MoLakaz TV from the stick</td><td>1 minute</td></tr>
+    <tr><td>5 · Press OK and let it set up</td><td>5 minutes — it copies the films and does the rest</td></tr>
+  </table>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>2</span></div>
+</section>
+
+<!-- 3. Steps 1–2 -->
+<section class="page">
+  <p class="kicker">Steps 1 and 2</p>
+  <h1 class="title">Plug in, then get X-plore</h1>
+  <div class="step"><div class="num">1</div><div>
+    <h2>Plug the USB stick into the box</h2>
+    <p class="txt">Any USB port on the box (at the back or on the side). Leave it in until the end.</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div>
+    <h2>Install X-plore from Google Play</h2>
+    <div class="txt"><ol>
+      <li>Press <span class="key">HOME</span>, open <span class="path">Google Play Store</span> (in the apps list if it isn't on the home screen).</li>
+      <li>Go up to the search, type <span class="path">X-plore</span> and open <b>X-plore File Manager</b>.</li>
+      <li>Choose <span class="path">Install</span>, wait, then <span class="path">Open</span>.</li>
+    </ol>
+    <p style="margin-top:2mm">X-plore is free. It lets the TV open the USB stick. You can uninstall it at the end.</p></div>
+    <div class="shot2"><img src="img/xplore.jpg"></div>
+    <p class="cap">X-plore: the USB stick shows on the left, under the box's own storage.</p>
+  </div></div>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>3</span></div>
+</section>
+
+<!-- 4. Step 3 -->
+<section class="page">
+  <p class="kicker">Step 3</p>
+  <h1 class="title">Turn on USB debugging</h1>
+  <p class="lead">This sounds technical, but it's two switches. It lets MoLakaz TV set itself up on the box (permissions,
+    the films, becoming the home screen) — the TV asks you to allow it once.</p>
+  <div class="step"><div class="num">3a</div><div>
+    <h2>Become a "developer"</h2>
+    <div class="txt"><ol>
+      <li>Open <span class="path">Settings</span> (the gear) › <span class="path">Device Preferences</span> › <span class="path">About</span>.</li>
+      <li>Go down to <span class="path">Build</span> and press <span class="key">OK</span> on it <b>7 times</b>, until the TV says <i>"You are now a developer"</i>.</li>
+    </ol></div>
+  </div></div>
+  <div class="step"><div class="num">3b</div><div>
+    <h2>Switch on USB debugging</h2>
+    <div class="txt"><ol>
+      <li>Press <span class="key">BACK</span>: <span class="path">Developer options</span> is now in Device Preferences. Open it.</li>
+      <li>Go down to <span class="path">USB debugging</span>, switch it <b>on</b>, and choose <span class="path">OK</span>.</li>
+    </ol></div>
+  </div></div>
+  <div class="pair" style="margin:6mm 4mm 0 4mm;gap:8mm">
+    <div><div class="shot2"><img src="img/about.jpg"></div><p class="cap">About › <b>Build</b> (at the bottom): press OK 7 times</p></div>
+    <div><div class="shot2"><img src="img/developer.jpg"></div><p class="cap">Developer options › <b>USB debugging</b>: on</p></div>
+  </div>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>4</span></div>
+</section>
+
+<!-- 5. Steps 4–5 -->
+<section class="page">
+  <p class="kicker">Steps 4 and 5</p>
+  <h1 class="title">Install, then press OK</h1>
+  <div class="step"><div class="num">4</div><div>
+    <h2>Install MoLakaz TV from the stick</h2>
+    <div class="txt"><ol>
+      <li>Open <span class="path">X-plore</span>. On the left, open the USB stick, then the <span class="path">MoLakaz</span> folder.</li>
+      <li>Choose <span class="path">MoLakaz-TV.apk</span> › <span class="path">Install</span>.</li>
+      <li>The first time, the TV says it can't install apps from X-plore: choose <span class="path">Settings</span>,
+        switch <b>X-plore</b> on, press <span class="key">BACK</span>, then <span class="path">Install</span> again.</li>
+      <li>When it's done, choose <span class="path">Open</span>.</li>
+    </ol></div>
+  </div></div>
+  <div class="step"><div class="num">5</div><div>
+    <h2>Press OK and let it set itself up</h2>
+    <div class="txt"><ol>
+      <li>MoLakaz TV opens on <i>Welcome to MoLakaz TV</i>. Press <span class="key">OK</span>.</li>
+      <li>The TV asks <i>"Allow USB debugging?"</i>: tick <b>Always allow from this computer</b>, then choose <span class="path">OK</span>.</li>
+      <li>Wait. It installs the apps from the stick and copies the films (a few minutes). Each line gets a green tick.</li>
+      <li>When it says <b>All set</b>, press <span class="key">OK</span>. Take the USB stick out. That's it!</li>
+    </ol></div>
+    <div class="pair">
+      <div><div class="shot2"><img src="img/setup_welcome.jpg"></div><p class="cap">Press OK to start</p></div>
+      <div><div class="shot2"><img src="img/setup_done.jpg"></div><p class="cap">All set: press OK</p></div>
+    </div>
+  </div></div>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>5</span></div>
+</section>
+
+<!-- 6. Show your friend -->
+<section class="page">
+  <p class="kicker">Done</p>
+  <h1 class="title">Show your friend around</h1>
+  <p class="lead">Press <span class="key">HOME</span> on the remote any time to come back to MoLakaz TV.</p>
+  <div class="tour">
+    <div class="t"><img src="img/tour_rail.jpg"><div><b>Apps on the left</b>Netflix, YouTube, Spotify… Go left, choose one, press OK. All the other apps are under the grid at the bottom.</div></div>
+    <div class="t"><img src="img/tour_preview.jpg"><div><b>Rest on a card</b>The bottom row is what you were watching and what's new. Stay on a card: its video, trailer or song plays behind.</div></div>
+    <div class="t"><img src="img/tour_settings.jpg"><div><b>Settings (the gear)</b>Change the apps on the left, the town for the weather, previews and sound, and the sleep timer.</div></div>
+    <div class="t"><img src="img/tour_goodnight.jpg"><div><b>Goodnight</b>Settings › Goodnight: the TV fades out and goes to sleep in 30 minutes, an hour… or every night at a set time.</div></div>
+  </div>
+  <div class="phone">
+    <img src="img/remote.jpg">
+    <div>
+      <h2 style="font-size:16pt">The phone is a remote too</h2>
+      <p class="txt" style="font-size:11pt;line-height:1.45;margin-top:2mm">In MoLakaz TV: <span class="path">Settings</span> › <span class="path">Phone remote</span>.
+        Scan the code with the phone's camera (same Wi-Fi as the TV). On an iPhone, tap <b>Share › Add to Home Screen</b>;
+        on Android, <b>⋮ › Add to Home screen</b>. Now it opens like an app: arrows, OK, volume, typing with the phone's keyboard, and the sleep timer.</p>
+    </div>
+  </div>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>6</span></div>
+</section>
+
+<!-- 7. Help -->
+<section class="page p7">
+  <p class="kicker">If something goes wrong</p>
+  <h1 class="title">Quick fixes</h1>
+  <table class="fix">
+    <tr><td>Google Play asks to sign in</td><td>The box has no Google account yet. Sign in with any Google account (the friend's), or use Plan B below.</td></tr>
+    <tr><td>"For your security, your TV isn't allowed to install unknown apps"</td><td>Choose <b>Settings</b> on that message, switch X-plore on, press BACK, then Install again (step 4).</td></tr>
+    <tr><td>Set-up says "One switch first"</td><td>USB debugging is off. Press OK: the TV's settings open. Do step 3, then press HOME — the set-up carries on by itself.</td></tr>
+    <tr><td>Set-up says "The TV didn't allow it"</td><td>The message on the TV was closed or refused. Press OK to ask again and choose <b>OK</b> (with "Always allow" ticked).</td></tr>
+    <tr><td>"The films couldn't be copied"</td><td>The USB stick came out or isn't read. Plug it back in, wait 10 seconds, press OK.</td></tr>
+    <tr><td>The films are black or the screen stays plain</td><td>Turn the box off and on at the wall, then press HOME.</td></tr>
+    <tr><td>The friend wants the old home screen back</td><td>MoLakaz TV › <b>Settings</b> › <b>Original home screen</b>. Choose it again later to come back to MoLakaz TV.</td></tr>
+  </table>
+  <h2 style="font-size:15pt;margin-top:7mm">Plan B — with a laptop</h2>
+  <p class="txt" style="font-size:12.5pt;line-height:1.5;margin-top:2mm">If the box has no Google Play or the stick won't open, use a laptop on the same Wi-Fi:</p>
+  <ol style="font-size:12.5pt;line-height:1.55;margin-top:2mm;padding-left:6mm">
+    <li>Do step 3 on the TV (USB debugging on). Write down the box's IP address: <span class="path">Settings › Network › Wi-Fi</span> › the network (e.g. 192.168.100.25).</li>
+    <li>Put the USB stick in the laptop. Open <span class="path">MoLakaz › computer</span>.</li>
+    <li>Windows: double-click <b>Install-on-TV-Windows</b>. Mac: double-click <b>Install-on-TV-Mac</b> (if the Mac refuses, right-click › Open).</li>
+    <li>Type the IP address and press Enter. Allow it on the TV ("Always allow"). Wait until it says <i>Done</i>.</li>
+    <li>On the TV, MoLakaz TV is open: press <span class="key">OK</span> and finish like step 5.</li>
+  </ol>
+  <div class="note" style="margin-top:5mm"><b>Need help?</b> Send a photo of the TV screen to the person who gave you the USB stick.</div>
+  <div class="foot"><span>MoLakaz TV · Setting up a TV box</span><span>7</span></div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+<resources>
+    <item name="swap_target" type="id" />
+    <item name="clip_edge" type="id" />
+</resources>

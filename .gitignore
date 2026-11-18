@@ -1,0 +1,16 @@
+# Build output and machine-specific files
+app/.gradle/
+app/.kotlin/
+app/build/
+app/app/build/
+app/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+.DS_Store
+.idea/
+*.iml
+# Private extras for a personal build or USB kit (never published)
+private/
+kit/out/
