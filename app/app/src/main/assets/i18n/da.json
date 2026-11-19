@@ -185,5 +185,6 @@
  "{n} min left": "{n} min tilbage",
  "Glass: every app as a white mark on dark glass": "Glas: hver app i hvidt på mørkt glas",
  "Tinted: white marks on glass in each app's colour": "Farvet: hvidt på glas i appens farve",
- "Original: each app's own icon": "Original: hver apps eget ikon"
+ "Original: each app's own icon": "Original: hver apps eget ikon",
+ "Silent while {title} plays": "Lydløs, mens {title} spiller"
 }

@@ -185,5 +185,6 @@
  "{n} min left": "剩余 {n} 分钟",
  "Glass: every app as a white mark on dark glass": "玻璃：深色玻璃上的白色标志",
  "Tinted: white marks on glass in each app's colour": "彩色：应用颜色玻璃上的白色标志",
- "Original: each app's own icon": "原始：各应用自己的图标"
+ "Original: each app's own icon": "原始：各应用自己的图标",
+ "Silent while {title} plays": "正在播放《{title}》，预览静音"
 }

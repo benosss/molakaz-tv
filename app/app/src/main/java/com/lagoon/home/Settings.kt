@@ -64,7 +64,9 @@ class SRow(ctx: Context, private val r: Float = D.u(18f)) : FrameLayout(ctx) {
 
 /** Home settings: quick-access apps (reorder, add, remove), location, and a door to Android settings. */
 class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onPlace: () -> Unit,
-                   private val onPreviews: () -> Unit) : GlassPanel(ctx, 0f, 0f) {
+                   private val onPreviews: () -> Unit,
+                   /** A bar entry's icon as the bar draws it, in an icon style (see [Prefs.iconStyle]). */
+                   private val iconFor: (entry: String, size: Int, style: Int) -> android.graphics.Bitmap?) : GlassPanel(ctx, 0f, 0f) {
     private enum class Screen { MAIN, RAIL, ADD, PLACE, REMOTE, SAVER, ABOUT, GOODNIGHT, INPUTS, UPDATES, LANGUAGE }
     private var screen = Screen.MAIN
     private val title = ctx.label(30f, "sans-serif-medium", bold = true)
@@ -444,16 +446,30 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
 
     // ---------- quick access ----------
 
-    private fun appLabel(pkg: String) = runCatching { context.packageManager.getApplicationInfo(pkg, 0).loadLabel(context.packageManager).toString() }.getOrDefault(pkg)
+    private fun appLabel(pkg: String) = if (Inputs.isInput(pkg)) Inputs.find(context, pkg)?.label ?: pkg
+        else runCatching { context.packageManager.getApplicationInfo(pkg, 0).loadLabel(context.packageManager).toString() }.getOrDefault(pkg)
     private fun appIcon(pkg: String) = runCatching { context.packageManager.getApplicationIcon(pkg) }.getOrNull()
+    /** The icon a bar entry has on the bar, in the chosen style (so the list shows what the bar will look like). */
+    private fun barIcon(pkg: String, style: Int = Prefs.iconStyle): android.graphics.drawable.Drawable? =
+        iconFor(pkg, D.ui(62f), style)?.let { b ->
+            // Original icons are square: round them the way the bar's tiles do (glass tiles come rounded already).
+            if (style == 2) androidx.core.graphics.drawable.RoundedBitmapDrawableFactory.create(resources, b).apply { cornerRadius = b.width * 17f / 62f; setAntiAlias(true) }
+            else android.graphics.drawable.BitmapDrawable(resources, b)
+        } ?: appIcon(pkg)
+    private fun onBar(entry: String) = if (Inputs.isInput(entry)) Inputs.find(context, entry) != null
+        else runCatching { context.packageManager.getPackageInfo(entry, 0) }.isSuccess
 
     private fun railScreen() {
         title.text = tr("Quick access apps")
         hint.text = tr("Select an app to pick it up, move it with up and down, then select again to drop it. Press right to remove.")
-        rail = Prefs.rail.filter { runCatching { context.packageManager.getPackageInfo(it, 0) }.isSuccess }.toMutableList()
+        // HDMI and other inputs on the bar are kept too (dropping them here would take them off the bar on the next move).
+        rail = Prefs.rail.filter { onBar(it) }.toMutableList()
+        val icons = ArrayList<Pair<String, ImageView>>()
+        fun iconView(r: SRow) = (r.getChildAt(0) as LinearLayout).getChildAt(0) as ImageView
         rail.forEachIndexed { i, pkg ->
-            val r = row(i, appLabel(pkg), null, appIcon(pkg)) { pickUp(railRows.indexOf(railRows.first { it.tag == pkg })) }
+            val r = row(i, appLabel(pkg), null, barIcon(pkg)) { pickUp(railRows.indexOf(railRows.first { it.tag == pkg })) }
             r.tag = pkg
+            icons += pkg to iconView(r)
             val remove = SRow(context, D.u(14f)).apply {
                 fill = 0xFFE5484D.toInt()
                 addView(context.label(15f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = tr("Remove"); gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
@@ -465,13 +481,41 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
             railRows += r
         }
         if (rail.size < Prefs.MAX_RAIL) row(rail.size, tr("Add an app"), tr("Up to {n} apps in the quick access bar", "n" to Prefs.MAX_RAIL), chip(R.drawable.ic_plus, 0xFF2F80ED.toInt())) { show(Screen.ADD) }
-        // Glass (each app's mark on frosted glass in its colour) or each app's own icon.
+
+        // Icon style: glass, tinted or original. The change shows right here (the bar itself is hidden behind Settings):
+        // every icon in the list switches, and three small samples on the row show the three looks, the chosen one lit.
         fun styleSub() = when (Prefs.iconStyle) { 0 -> tr("Glass: every app as a white mark on dark glass"); 1 -> tr("Tinted: white marks on glass in each app's colour"); else -> tr("Original: each app's own icon") }
-        lateinit var style: SRow
-        style = row(rail.size + if (rail.size < Prefs.MAX_RAIL) 1 else 0, tr("Icon style"), styleSub(), chip(R.drawable.ic_grid, 0xFF5E5CE6.toInt())) {
-            Prefs.iconStyle = (Prefs.iconStyle + 1) % 3; onRail(); show(Screen.RAIL)
+        val sample = rail.firstOrNull { !Inputs.isInput(it) }
+        val style = row(rail.size + if (rail.size < Prefs.MAX_RAIL) 1 else 0, tr("Icon style"), styleSub(), chip(R.drawable.ic_grid, 0xFF5E5CE6.toInt())) {}
+        val sub = ((style.getChildAt(0) as LinearLayout).getChildAt(1) as LinearLayout).getChildAt(1) as TextView
+        val samples = (0..2).map { st ->
+            ImageView(context).apply { sample?.let { setImageDrawable(barIcon(it, st)) } }
         }
-        railRows.firstOrNull()?.requestFocus() ?: body.getChildAt(0)?.requestFocus()
+        if (sample != null) {
+            val strip = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            samples.forEachIndexed { k, v -> strip.addView(v, LinearLayout.LayoutParams(D.ui(40f), D.ui(40f)).apply { if (k > 0) leftMargin = D.ui(12f) }) }
+            (style.getChildAt(0) as LinearLayout).addView(strip, LinearLayout.LayoutParams(WRAP, WRAP).apply { leftMargin = D.ui(16f) })
+        }
+        fun mark(animate: Boolean) = samples.forEachIndexed { k, v ->
+            val on = k == Prefs.iconStyle
+            val a = if (on) 1f else 0.38f; val sc = if (on) 1.1f else 0.9f
+            if (animate && Motion.on) v.animate().alpha(a).scaleX(sc).scaleY(sc).setDuration(220).setInterpolator(Ease.out).start()
+            else { v.alpha = a; v.scaleX = sc; v.scaleY = sc }
+        }
+        mark(false)
+        fun setStyle(st: Int) {
+            Prefs.iconStyle = (st + 3) % 3
+            sub.text = styleSub(); soften(sub)
+            icons.forEach { (pkg, v) -> v.setImageDrawable(barIcon(pkg)) }
+            mark(true)
+            onRail()
+        }
+        style.setOnClickListener { setStyle(Prefs.iconStyle + 1) }
+        style.setOnKeyListener { _, code, ev ->
+            if (ev.action != KeyEvent.ACTION_DOWN || moving >= 0) false
+            else when (code) { KeyEvent.KEYCODE_DPAD_RIGHT -> { setStyle(Prefs.iconStyle + 1); true }; KeyEvent.KEYCODE_DPAD_LEFT -> { setStyle(Prefs.iconStyle - 1); true }; else -> false }
+        }
+        (railRows.firstOrNull() ?: body.getChildAt(0))?.requestFocus()
     }
 
     private fun pickUp(i: Int) { if (i < 0) return; moving = i; railRows[i].lifted = true; railRows[i].bringToFront() }

@@ -185,5 +185,6 @@
  "{n} min left": "Nog {n} min",
  "Glass: every app as a white mark on dark glass": "Glas: elke app wit op donker glas",
  "Tinted: white marks on glass in each app's colour": "Getint: wit op glas in de kleur van de app",
- "Original: each app's own icon": "Origineel: het eigen pictogram van elke app"
+ "Original: each app's own icon": "Origineel: het eigen pictogram van elke app",
+ "Silent while {title} plays": "Stil zolang {title} speelt"
 }

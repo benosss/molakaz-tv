@@ -185,5 +185,6 @@
  "{n} min left": "{n} dk kaldı",
  "Glass: every app as a white mark on dark glass": "Cam: her uygulama koyu cam üzerinde beyaz",
  "Tinted: white marks on glass in each app's colour": "Renkli: uygulamanın renginde cam üzerinde beyaz",
- "Original: each app's own icon": "Orijinal: her uygulamanın kendi simgesi"
+ "Original: each app's own icon": "Orijinal: her uygulamanın kendi simgesi",
+ "Silent while {title} plays": "{title} çalarken sessiz"
 }

@@ -185,5 +185,6 @@
  "{n} min left": "Zbývá {n} min",
  "Glass: every app as a white mark on dark glass": "Sklo: každá aplikace bíle na tmavém skle",
  "Tinted: white marks on glass in each app's colour": "Tónované: bíle na skle v barvě aplikace",
- "Original: each app's own icon": "Původní: vlastní ikona každé aplikace"
+ "Original: each app's own icon": "Původní: vlastní ikona každé aplikace",
+ "Silent while {title} plays": "Bez zvuku, dokud hraje {title}"
 }

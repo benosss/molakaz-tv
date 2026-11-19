@@ -185,5 +185,6 @@
  "{n} min left": "Mancano {n} min",
  "Glass: every app as a white mark on dark glass": "Vetro: ogni app in bianco su vetro scuro",
  "Tinted: white marks on glass in each app's colour": "Colorato: in bianco su vetro del colore dell'app",
- "Original: each app's own icon": "Originale: l'icona di ogni app"
+ "Original: each app's own icon": "Originale: l'icona di ogni app",
+ "Silent while {title} plays": "In silenzio mentre suona {title}"
 }

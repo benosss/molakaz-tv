@@ -185,5 +185,6 @@
  "{n} min left": "残り {n} 分",
  "Glass: every app as a white mark on dark glass": "ガラス：暗いガラスに白いマーク",
  "Tinted: white marks on glass in each app's colour": "ティント：アプリの色のガラスに白いマーク",
- "Original: each app's own icon": "オリジナル：各アプリのアイコン"
+ "Original: each app's own icon": "オリジナル：各アプリのアイコン",
+ "Silent while {title} plays": "「{title}」の再生中は無音"
 }

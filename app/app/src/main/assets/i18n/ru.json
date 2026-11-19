@@ -185,5 +185,6 @@
  "{n} min left": "Осталось {n} мин",
  "Glass: every app as a white mark on dark glass": "Стекло: каждое приложение белым на тёмном стекле",
  "Tinted: white marks on glass in each app's colour": "Цветное: белым на стекле цвета приложения",
- "Original: each app's own icon": "Оригинал: собственный значок приложения"
+ "Original: each app's own icon": "Оригинал: собственный значок приложения",
+ "Silent while {title} plays": "Без звука, пока играет «{title}»"
 }

@@ -185,5 +185,6 @@
  "{n} min left": "เหลือ {n} นาที",
  "Glass: every app as a white mark on dark glass": "กระจก: แต่ละแอปเป็นสีขาวบนกระจกเข้ม",
  "Tinted: white marks on glass in each app's colour": "สี: สีขาวบนกระจกสีของแอป",
- "Original: each app's own icon": "ต้นฉบับ: ไอคอนของแต่ละแอป"
+ "Original: each app's own icon": "ต้นฉบับ: ไอคอนของแต่ละแอป",
+ "Silent while {title} plays": "ปิดเสียงขณะเล่น {title}"
 }

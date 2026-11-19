@@ -1,9 +1,14 @@
 # Credits
 
+## Inspiration
+
+[Free My TV](https://github.com/simbasjungles/free-my-tv) by simbasjungles: the idea of an ad-free home screen
+that runs from the TV's own adb and comes undone with one press started here.
+
 ## Nature films
 
 The 27 films behind the home screen are from [Pexels](https://www.pexels.com) and used under the
-[Pexels license](https://www.pexels.com/license/) (free to use, no attribution required — but they deserve it).
+[Pexels license](https://www.pexels.com/license/) (free to use without credit, but they deserve it).
 MoLakaz TV re-cuts them, smooths them to 60 fps and colour-matches them for TV.
 
 | Place | Filmed by | Source |
@@ -40,22 +45,22 @@ MoLakaz TV re-cuts them, smooths them to 60 fps and colour-matches them for TV.
 
 From [Wikimedia Commons](https://commons.wikimedia.org):
 
-- Waves — J.D. Savanyu (CC0)
-- Rain — kvgarlic (CC0)
-- Dawn chorus — Robert EA Harvey ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- Waves: J.D. Savanyu (CC0)
+- Rain: kvgarlic (CC0)
+- Dawn chorus: Robert EA Harvey ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
 
 ## Data and services
 
 - Weather: [Open-Meteo](https://open-meteo.com) (CC BY 4.0)
 - Location from the network: [ipwho.is](https://ipwho.is)
-- Fresh picks: Netflix Top 10 (Tudum), YouTube Charts, Spotify's New Music Friday — public pages, no keys
+- Fresh picks: Netflix Top 10 (Tudum), YouTube Charts, Spotify's New Music Friday (public pages, no keys)
 - Song previews: Spotify's public embed player
 
 ## Code
 
 - [AndroidX Media3 / ExoPlayer](https://github.com/androidx/media) (Apache 2.0)
-- [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0) — talks to the box's own adb
-- [ZXing](https://github.com/zxing/zxing) (Apache 2.0) — the phone remote's QR code
+- [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0), to talk to the box's own adb
+- [ZXing](https://github.com/zxing/zxing) (Apache 2.0), for the phone remote's QR code
 
 MoLakaz TV is not affiliated with Netflix, YouTube, Spotify, Amazon, Apple, Plex, Google, Mauritius Telecom or any
 streaming service. App names and logos belong to their owners.

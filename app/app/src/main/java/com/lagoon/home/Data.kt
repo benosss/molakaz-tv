@@ -99,7 +99,7 @@ object MediaHub {
         refresh()
     }
 
-    fun anyPlaying() = ctrls.any { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+    fun anyPlaying() = faked?.playing == true || ctrls.any { it.playbackState?.state == PlaybackState.STATE_PLAYING }
 
     fun toggle() {
         val n = now ?: return
@@ -138,7 +138,9 @@ object MediaHub {
     }
 
     /** Diagnostics only: show a made-up track (null = back to the real sessions). */
-    fun debugFake(n: Now?) { if (n == null) refresh() else { now = n; listeners.forEach { it() } } }
+    /** Diagnostics: a made-up track, treated as really playing (so previews stay silent, as they would). */
+    private var faked: Now? = null
+    fun debugFake(n: Now?) { faked = n; if (n == null) { now = null; refresh() } else { now = n; listeners.forEach { it() } } }
 
     private fun str(md: MediaMetadata?, vararg keys: String) = keys.firstNotNullOfOrNull { k -> md?.getString(k)?.takeIf { it.isNotBlank() } }
 

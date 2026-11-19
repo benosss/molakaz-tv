@@ -185,5 +185,6 @@
  "{n} min left": "Quedan {n} min",
  "Glass: every app as a white mark on dark glass": "Cristal: cada app en blanco sobre cristal oscuro",
  "Tinted: white marks on glass in each app's colour": "Tintado: en blanco sobre cristal del color de cada app",
- "Original: each app's own icon": "Original: el icono de cada app"
+ "Original: each app's own icon": "Original: el icono de cada app",
+ "Silent while {title} plays": "En silencio mientras suena {title}"
 }

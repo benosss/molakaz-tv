@@ -185,5 +185,6 @@
  "{n} min left": "Απομένουν {n} λεπτά",
  "Glass: every app as a white mark on dark glass": "Γυαλί: κάθε εφαρμογή λευκή σε σκούρο γυαλί",
  "Tinted: white marks on glass in each app's colour": "Χρωματιστό: λευκό σε γυαλί στο χρώμα της εφαρμογής",
- "Original: each app's own icon": "Αρχικό: το εικονίδιο κάθε εφαρμογής"
+ "Original: each app's own icon": "Αρχικό: το εικονίδιο κάθε εφαρμογής",
+ "Silent while {title} plays": "Χωρίς ήχο όσο παίζει το «{title}»"
 }

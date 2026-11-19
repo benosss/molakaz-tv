@@ -185,5 +185,6 @@
  "{n} min left": "{n}분 남음",
  "Glass: every app as a white mark on dark glass": "유리: 어두운 유리 위 흰색 로고",
  "Tinted: white marks on glass in each app's colour": "틴트: 앱 색상 유리 위 흰색 로고",
- "Original: each app's own icon": "원본: 각 앱의 아이콘"
+ "Original: each app's own icon": "원본: 각 앱의 아이콘",
+ "Silent while {title} plays": "'{title}' 재생 중에는 소리 없음"
 }

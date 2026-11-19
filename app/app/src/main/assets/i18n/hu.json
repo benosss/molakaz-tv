@@ -185,5 +185,6 @@
  "{n} min left": "Még {n} perc",
  "Glass: every app as a white mark on dark glass": "Üveg: minden alkalmazás fehéren, sötét üvegen",
  "Tinted: white marks on glass in each app's colour": "Színezett: fehéren, az alkalmazás színű üvegen",
- "Original: each app's own icon": "Eredeti: az alkalmazások saját ikonja"
+ "Original: each app's own icon": "Eredeti: az alkalmazások saját ikonja",
+ "Silent while {title} plays": "Némítva, amíg szól: {title}"
 }

@@ -216,7 +216,31 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
     }
 
     /** What a scene needs: the cover, the colours taken from it, and the words. */
-    class SceneData(val cover: Bitmap?, val palette: IntArray, val base: Int, val title: String, val artist: String)
+    class SceneData(val cover: Bitmap?, val palette: IntArray, val base: Int, val title: String, val artist: String, val src: PreviewSrc)
+
+    /**
+     * The card's song is the one in the music app right now (playing or paused): then the scene is that song, live (its
+     * real progress and sound), not a preview of it. Matched by Spotify's track id when the session gives one, else by
+     * title and artist.
+     */
+    fun liveFor(src: PreviewSrc?): MediaHub.Now? {
+        val n = MediaHub.now ?: return null
+        // Asked every frame while a scene shows: the answer only changes when the song or the card does.
+        if (n === liveNow && src === liveSrc) return if (liveHit) n else null
+        return matchLive(n, src).also { liveNow = n; liveSrc = src; liveHit = it != null }
+    }
+    private var liveNow: MediaHub.Now? = null; private var liveSrc: PreviewSrc? = null; private var liveHit = false
+
+    private fun matchLive(n: MediaHub.Now, src: PreviewSrc?): MediaHub.Now? {
+        val t = src?.track ?: return null
+        if (!n.pkg.startsWith("com.spotify")) return null
+        if (!t.startsWith("q:") && n.mediaId?.endsWith(t) == true) return n
+        fun norm(x: String?) = x.orEmpty().lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
+        val a = norm(n.title)
+        if (a.isEmpty() || a != norm(src.title)) return null
+        val x = norm(n.sub); val y = norm(src.sub)
+        return if (x.isEmpty() || y.isEmpty() || x.contains(y) || y.contains(x)) n else null
+    }
 
     private val h = Handler(Looper.getMainLooper())
     private val views = List(2) { MusicScene(ctx).also { v -> v.alpha = 0f; host.addView(v, FrameLayout.LayoutParams(MATCH, MATCH)) } }
@@ -248,6 +272,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         views.forEach { v ->
             v.sounding = { sounding }
             v.clip = { val p = player; if (p != null && playerId == showing && p.duration > 0) (p.currentPosition / 1000f) to (p.duration / 1000f) else null }
+            v.live = { d -> liveFor(d.src) }
         }
     }
 
@@ -274,6 +299,16 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
             if (wanted?.track == id && shown && !sounding) soundIn(id)
         }
     }
+
+    /**
+     * The music app changed (play, pause, another song): a clip never sounds over music, nor over its own song. Sound
+     * only ever starts on focus, never because the music stopped (that would surprise).
+     */
+    fun mediaChanged() { if (sounding && (liveFor(wanted) != null || !audible())) soundOut() }
+
+    /** Diagnostics (the "np" debug command). */
+    fun debugState(): String = player.let { p -> "music shown=$shown showing=$showing sounding=$sounding playerId=$playerId " +
+        (if (p == null) "no player" else "state=${p.playbackState} pwr=${p.playWhenReady} pos=${p.currentPosition} dur=${p.duration} vol=${p.volume} err=${p.playerError?.message}") }
 
     /** Fetch the clips and covers of these tracks ahead (a row just loaded). */
     fun warm(ids: List<String>) { if (enabled && ids.isNotEmpty()) SpotifyTracks.warm(ids) }
@@ -348,7 +383,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
             val cover = big ?: src.cover
             val pal = runCatching { MusicScene.palette(cover, src.tint) }.getOrNull()
             val (title, artist) = credits(src.title.orEmpty(), src.sub.orEmpty())
-            val d = pal?.let { SceneData(cover, it.first, it.second, title, artist) }
+            val d = pal?.let { SceneData(cover, it.first, it.second, title, artist, src) }
             Log.i(TAG, "scene for $id ready in ${SystemClock.uptimeMillis() - t0} ms" + if (big == null) " (card cover)" else "")
             h.post {
                 if (d == null) { done(); return@post }     // reveal finds no scene and hides the last one
@@ -407,7 +442,8 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
     }
 
     private fun soundIn(id: String) {
-        if (sounding || playerId != id || !audible()) return
+        // The song already playing (or paused) in Spotify: no clip of it over or instead of the real thing.
+        if (sounding || playerId != id || !audible() || liveFor(wanted) != null) return
         val p = player ?: return
         if (p.playbackState == Player.STATE_ENDED) p.seekTo(0L)
         sounding = true
@@ -462,11 +498,13 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
  */
 private class MusicScene(ctx: Context) : View(ctx) {
     var data: MusicPreview.SceneData? = null
-        set(v) { if (field !== v) { field = v; cover = null; title = null; invalidate() } }
+        set(v) { if (field !== v) { if (field?.src?.track != v?.src?.track) blockY = -1f; field = v; cover = null; title = null; invalidate() } }
     var running = false
         set(v) { field = v; if (v) { t0 = SystemClock.uptimeMillis(); invalidate() } }
     var sounding: () -> Boolean = { false }
     var clip: () -> Pair<Float, Float>? = { null }
+    /** The scene's song as the music app has it, when it's the one playing or paused there (see [MusicPreview.liveFor]). */
+    var live: (MusicPreview.SceneData) -> MediaHub.Now? = { null }
 
     private var t0 = 0L
     private val sprite = glowSprite()
@@ -485,6 +523,9 @@ private class MusicScene(ctx: Context) : View(ctx) {
     private val r = RectF(); private val m = android.graphics.Matrix()
     private val bars = FloatArray(BARS)
     private var bass = 0f
+    private var barsA = 0f          // the bars fade in with real sound and out without it
+    private var blockY = -1f        // top of the words, eased when the block changes height
+    private var noteFor: String? = null; private var note = ""
 
     override fun hasOverlappingRendering() = false
 
@@ -492,17 +533,33 @@ private class MusicScene(ctx: Context) : View(ctx) {
         val d = data ?: return
         val w = width.toFloat(); val hh = height.toFloat(); val u = D.s
         val t = (SystemClock.uptimeMillis() - t0) / 1000f
-        val live = sounding() && AudioViz.live
-        // The music: the box's own output when the clip plays, else a gentle made-up motion.
+
+        // What's true right now. One place on screen says it: this scene (Home hides its Now playing line meanwhile).
+        //  - The card's song is the one in Spotify: it's shown live (NOW PLAYING or PAUSED, its real progress and bars).
+        //  - Another song plays: the preview stays silent and says so in one line; no bars (they'd be someone else's).
+        //  - Nothing plays: the 30-second clip, its bars and its progress (or MUTED when previews are silent in Settings).
+        val n = live(d)
+        val clipOn = sounding()
+        val heard = n?.playing ?: clipOn
+        val liveAudio = heard && AudioViz.live
+        val other = if (n == null && !clipOn) MediaHub.now?.takeIf { it.playing } else null
+        val expect = n?.playing ?: (other == null && Prefs.musicSound)      // room for the bars: sound is (or will be) on
+        val prog: Pair<Float, Float>? = when { n != null -> if (n.dur > 0) (n.position() / 1000f) to (n.dur / 1000f) else null; clipOn -> clip(); else -> null }
+        val showProg = (n != null && n.dur > 0) || (n == null && expect)
+        if (other != null && noteFor != other.title) { noteFor = other.title; note = tr("Silent while {title} plays", "title" to other.title) }
+        val noteOn = n == null && other != null
+
+        // The music: the bars follow the real sound only; the cover and glows keep a slow breath of their own without it.
         var b = 0f
         for (i in 0 until BARS) {
             val band = i * (AudioViz.BANDS - 1f) / (BARS - 1f); val lo = band.toInt(); val f = band - lo
-            val raw = if (live) AudioViz.level(lo) * (1 - f) + AudioViz.level((lo + 1).coerceAtMost(AudioViz.BANDS - 1)) * f
-                else 0.34f + 0.26f * kotlin.math.sin(t * (2.3f + i * 0.37f) + i * 0.9f) * kotlin.math.sin(t * 0.83f + i * 1.7f)
+            val raw = if (liveAudio) AudioViz.level(lo) * (1 - f) + AudioViz.level((lo + 1).coerceAtMost(AudioViz.BANDS - 1)) * f else 0f
             bars[i] += (raw.coerceIn(0f, 1f) - bars[i]) * (if (raw > bars[i]) 0.55f else 0.18f)
             if (i < 4) b += bars[i]
         }
-        bass += (b / 4f - bass) * 0.3f
+        val breath = 0.30f + 0.18f * kotlin.math.sin(t * 2.1f) * kotlin.math.sin(t * 0.77f + 1f)
+        bass += ((if (liveAudio) b / 4f else breath) - bass) * 0.3f
+        barsA += ((if (heard) 1f else 0f) - barsA) * 0.12f
 
         // 1. The cover's darkest colour, then its colours as four soft glows drifting on slow, different paths.
         c.drawColor(d.base)
@@ -539,32 +596,60 @@ private class MusicScene(ctx: Context) : View(ctx) {
         c.drawRoundRect(r, 18f * u, 18f * u, rimP)
         c.restore()
 
-        // 3. The words, and the bars dancing under them.
+        // 3. The words, centred on the cover: label, title, artist, then the bars and progress, or the one-line note.
         val x = 530f * u
-        label.textSize = 13f * u; label.color = argbA(0.86f, 0xFFFFFF)
-        c.drawText("SPOTIFY  ·  " + tr("PREVIEW") + if (sounding()) "" else "  ·  " + tr("MUTED"), x, 236f * u, label)
         val tl = title ?: layoutTitle(d.title, 640f * u, u).also { title = it }
-        c.save(); c.translate(x, 248f * u); tl.draw(c); c.restore()
-        var y = 248f * u + tl.height + 8f * u
+        val bw = 7f * u; val gap = 4.5f * u; val maxH = 46f * u; val pw = BARS * (bw + gap) - gap
+        var blockH = 22f * u + tl.height + 8f * u + 23f * u
+        if (expect) blockH += 26f * u + maxH
+        if (showProg) blockH += (if (expect) 18f else 26f) * u + 3f * u
+        if (noteOn) blockH += 24f * u + 18f * u
+        val top = cyT + cs / 2 - blockH / 2
+        blockY = if (blockY < 0f) top else blockY + (top - blockY) * 0.14f
+        var y = blockY
+
+        label.textSize = 13f * u
+        val lab = if (n != null) (if (n.playing) tr("NOW PLAYING") else tr("PAUSED")) + "  ·  SPOTIFY"
+            else "SPOTIFY  ·  " + tr("PREVIEW") + if (!clipOn && other == null && !Prefs.musicSound) "  ·  " + tr("MUTED") else ""
+        label.color = if (n?.playing == true) SPOTIFY_GREEN else argbA(0.86f, 0xFFFFFF)
+        c.drawText(lab, x, y + 10f * u, label)
+        c.save(); c.translate(x, y + 22f * u); tl.draw(c); c.restore()
+        y += 22f * u + tl.height + 8f * u
         artistP.textSize = 23f * u; artistP.color = argbA(0.86f, 0xFFFFFF)
         c.drawText(TextUtils.ellipsize(d.artist, artistP, 640f * u, TextUtils.TruncateAt.END).toString(), x, y + artistP.textSize, artistP)
-        y += artistP.textSize + 26f * u
-        val bw = 7f * u; val gap = 4.5f * u; val maxH = 46f * u
-        barP.color = argbA(0.92f, 0xFFFFFF)
-        for (i in 0 until BARS) {
-            val bh = (5f * u + bars[i] * maxH).coerceAtMost(maxH)
-            val bx = x + i * (bw + gap)
-            r.set(bx, y + maxH - bh, bx + bw, y + maxH); c.drawRoundRect(r, bw / 2, bw / 2, barP)
+        y += artistP.textSize
+
+        if (expect) {
+            y += 26f * u
+            if (barsA > 0.01f) {
+                barP.color = argbA(0.92f * barsA, 0xFFFFFF)
+                for (i in 0 until BARS) {
+                    val bh = (5f * u + bars[i] * maxH).coerceAtMost(maxH)
+                    val bx = x + i * (bw + gap)
+                    r.set(bx, y + maxH - bh, bx + bw, y + maxH); c.drawRoundRect(r, bw / 2, bw / 2, barP)
+                }
+            }
+            y += maxH
         }
-        // 4. Where the 30 seconds are.
-        if (sounding()) clip()?.let { (pos, dur) ->
-            val py = y + maxH + 18f * u; val pw = BARS * (bw + gap) - gap
-            barP.color = argbA(0.28f, 0xFFFFFF); r.set(x, py, x + pw, py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
-            barP.color = Color.WHITE; r.set(x, py, x + pw * (pos / dur).coerceIn(0f, 1f), py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
-            timeP.textSize = 13f * u; timeP.color = argbA(0.8f, 0xFFFFFF)
-            c.drawText("0:%02d".format(pos.toInt().coerceIn(0, 59)), x + pw + 12f * u, py + 5f * u, timeP)
+        // 4. Where the song (or the 30 seconds) is.
+        if (showProg) {
+            val py = y + (if (expect) 18f else 26f) * u
+            if (prog != null) {
+                val (pos, dur) = prog
+                barP.color = argbA(0.28f, 0xFFFFFF); r.set(x, py, x + pw, py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
+                barP.color = Color.WHITE; r.set(x, py, x + pw * (pos / dur).coerceIn(0f, 1f), py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
+                timeP.textSize = 13f * u; timeP.color = argbA(0.8f, 0xFFFFFF)
+                c.drawText(mmss(pos) + " / " + mmss(dur), x + pw + 12f * u, py + 5f * u, timeP)
+            }
+            y = py + 3f * u
         }
-        if (running && isAttachedToWindow && alpha > 0f) postInvalidateDelayed(33)
+        if (noteOn) {
+            timeP.textSize = 16f * u; timeP.color = argbA(0.72f, 0xFFFFFF)
+            c.drawText(TextUtils.ellipsize(note, timeP, 640f * u, TextUtils.TruncateAt.END).toString(), x, y + 24f * u + 13f * u, timeP)
+        }
+        // Keep going while it runs, whatever its opacity: the first frame is drawn at alpha 0 just before the fade-in
+        // starts, and the fade itself only changes the layer's alpha (no redraw), so stopping at 0 froze the scene.
+        if (running && isAttachedToWindow) postInvalidateDelayed(33)
     }
 
     private fun layoutTitle(s: String, width: Float, u: Float): StaticLayout {
@@ -581,8 +666,11 @@ private class MusicScene(ctx: Context) : View(ctx) {
         return bmp
     }
 
+    private fun mmss(sec: Float): String { val s = sec.toInt().coerceAtLeast(0); return "%d:%02d".format(s / 60, s % 60) }
+
     companion object {
         const val BARS = 24
+        private val SPOTIFY_GREEN = 0xFF1ED760.toInt()
         /** Speeds and phases of the four glows (x, y): slow and never in step, so the picture never repeats visibly. */
         private val PATHS = arrayOf(floatArrayOf(0.23f, 0.17f, 0f, 1f), floatArrayOf(0.13f, 0.29f, 2.1f, 0.3f),
             floatArrayOf(0.31f, 0.11f, 4.2f, 2.6f), floatArrayOf(0.09f, 0.21f, 1.3f, 4.4f))

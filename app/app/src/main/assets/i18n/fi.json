@@ -185,5 +185,6 @@
  "{n} min left": "{n} min jäljellä",
  "Glass: every app as a white mark on dark glass": "Lasi: jokainen sovellus valkoisena tummalla lasilla",
  "Tinted: white marks on glass in each app's colour": "Sävytetty: valkoinen sovelluksen värisellä lasilla",
- "Original: each app's own icon": "Alkuperäinen: sovelluksen oma kuvake"
+ "Original: each app's own icon": "Alkuperäinen: sovelluksen oma kuvake",
+ "Silent while {title} plays": "Äänetön, kun {title} soi"
 }

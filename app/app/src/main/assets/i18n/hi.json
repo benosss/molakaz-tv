@@ -185,5 +185,6 @@
  "{n} min left": "{n} मिनट बाकी",
  "Glass: every app as a white mark on dark glass": "ग्लास: गहरे ग्लास पर हर ऐप सफ़ेद में",
  "Tinted: white marks on glass in each app's colour": "टिंटेड: ऐप के रंग के ग्लास पर सफ़ेद",
- "Original: each app's own icon": "मूल: हर ऐप का अपना आइकन"
+ "Original: each app's own icon": "मूल: हर ऐप का अपना आइकन",
+ "Silent while {title} plays": "{title} चलते समय आवाज़ बंद"
 }

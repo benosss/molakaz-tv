@@ -185,5 +185,6 @@
  "{n} min left": "Au mai rămas {n} min",
  "Glass: every app as a white mark on dark glass": "Sticlă: fiecare aplicație în alb pe sticlă întunecată",
  "Tinted: white marks on glass in each app's colour": "Colorat: alb pe sticlă în culoarea aplicației",
- "Original: each app's own icon": "Original: pictograma fiecărei aplicații"
+ "Original: each app's own icon": "Original: pictograma fiecărei aplicații",
+ "Silent while {title} plays": "Fără sunet cât timp rulează {title}"
 }

@@ -126,7 +126,10 @@ class HomeActivity : Activity() {
         preview = Preview(this, previewHost, onShown = ::previewShown, onLoading = { on -> shelf.setLoading(shelf.index, on && zone == Zone.SHELF) },
             onActive = { on -> videoActive = on; cacheUi() }, onProgress = onProgress)
         // Spotify cards: the song's cover scene and its clip, above the video players (only one of the two shows).
-        music = MusicPreview(this, previewHost, onShown = ::previewShown, onActive = { on -> musicActive = on; cacheUi() }, onProgress = onProgress)
+        // While a song's scene is up it says everything about the music, so the Now playing line steps aside (one
+        // cover, one title, one visualiser on screen, never two).
+        music = MusicPreview(this, previewHost, onShown = { on -> musicStage = on; previewShown(on); renderNow() },
+            onActive = { on -> musicActive = on; cacheUi() }, onProgress = onProgress)
         ui = FrameLayout(this).apply { clipChildren = false; clipToPadding = false }
         root.addView(ui, FrameLayout.LayoutParams(MATCH, MATCH))
         // Under everything else in Home's layer: the dimming over a preview (drawn once, not per video frame).
@@ -137,7 +140,8 @@ class HomeActivity : Activity() {
         allApps = AllApps(this) { pkg, v -> closeAllApps(); launch(pkg, v) }
         root.addView(allApps, FrameLayout.LayoutParams(MATCH, MATCH))
         settings = HomeSettings(this, onRail = { rebuildRail(true) }, onPlace = { renderStatus(); refreshWeatherNow(); Picks.refresh(Prefs.place) },
-            onPreviews = { preview.enabled = Prefs.previews; music.enabled = Prefs.previews; if (Prefs.previews) predictSoon(1500) })
+            onPreviews = { preview.enabled = Prefs.previews; music.enabled = Prefs.previews; if (Prefs.previews) predictSoon(1500) },
+            iconFor = { entry, size, style -> iconBitmap(entry, size, style) })
         root.addView(settings, FrameLayout.LayoutParams(MATCH, MATCH))
         // A box without the films or the access MoLakaz TV needs: the first-run setup, over everything.
         // Home's own layer fades out behind it, as for Settings, so the steps read on clean glass.
@@ -160,7 +164,7 @@ class HomeActivity : Activity() {
         }
 
         ContinueStore.listen { if (shelf.tab == 0 && zone != Zone.SHELF) shelf.reload(true) }
-        MediaHub.listen { renderNow() }
+        MediaHub.listen { renderNow(); music.mediaChanged() }
         Picks.listen { if (shelf.tab == 1 && zone != Zone.SHELF) shelf.reload(true) }
         h.postDelayed(picksLoop, 3000)
         MediaHub.start(this)
@@ -190,6 +194,7 @@ class HomeActivity : Activity() {
     /** While a preview plays, Home is cached as one layer (redrawing it per video frame costs ~100 ms on this box). */
     private var videoActive = false
     private var musicActive = false
+    private var musicStage = false
     private fun cacheUi() { val on = videoActive || musicActive; if ((ui.layerType == View.LAYER_TYPE_HARDWARE) != on) ui.setLayerType(if (on) View.LAYER_TYPE_HARDWARE else View.LAYER_TYPE_NONE, null) }
 
     // ---------- build ----------
@@ -410,7 +415,7 @@ class HomeActivity : Activity() {
 
     private fun renderNow() {
         val n = MediaHub.now
-        showNow(n != null && !inSaver)
+        showNow(n != null && !inSaver && !musicStage)
         if (n == null) {
             npLabel.text = tr("NOW PLAYING"); npLabel.setTextColor(Theme.ink2)
             swap(npTitle, tr("Nothing playing"))
@@ -825,10 +830,10 @@ class HomeActivity : Activity() {
             val cmd = i.getStringExtra("do")
             android.util.Log.i("Tour", "command $cmd")
             when (cmd) {
-                "np" -> android.util.Log.i("MediaHub", "state now=${MediaHub.now?.title} playing=${MediaHub.now?.playing} npShown=$npShown vis=${np.visibility} alpha=${np.alpha} inSaver=$inSaver resumed=$resumed")
+                "np" -> android.util.Log.i("MediaHub", "state now=${MediaHub.now?.title} playing=${MediaHub.now?.playing} npShown=$npShown vis=${np.visibility} alpha=${np.alpha} inSaver=$inSaver resumed=$resumed | ${music.debugState()}")
                 "viz" -> vizProbe()
                 "vizdemo" -> vizDemo()
-                "npdemo" -> npDemo()
+                "npdemo" -> npDemo(i)
                 "veil" -> carousel.debugVeil(i.getFloatExtra("v", 1f), 9000)
                 "gn" -> Goodnight.preview()
                 "pv" -> preview.focus(i.getStringExtra("id")?.let { PreviewSrc(it, i.getIntExtra("s", 0)) } ?: i.getStringExtra("trailer")?.let { PreviewSrc(trailerOf = it) })
@@ -890,13 +895,19 @@ class HomeActivity : Activity() {
         h.postDelayed({ npControls() }, 10_000)
     }
 
-    /** Diagnostics: a made-up Spotify track for 15 s, to check Now playing without logging in to anything. */
-    private fun npDemo() {
-        val art = ContinueStore.items.firstNotNullOfOrNull { it.art }?.let { BitmapFactory.decodeFile(it) }
-        MediaHub.debugFake(MediaHub.Now("com.spotify.tv.android", "Weightless", "Marconi Union", art, true, 95_000, 480_000,
+    /**
+     * Diagnostics: a made-up Spotify track (15 s unless --ei secs), to check Now playing without logging in to anything.
+     * --es title/artist name it (e.g. after a Continue watching card), --ez playing false shows it paused.
+     */
+    private fun npDemo(i: Intent) {
+        val title = i.getStringExtra("title") ?: "Weightless"; val artist = i.getStringExtra("artist") ?: "Marconi Union"
+        val art = ContinueStore.items.firstOrNull { it.title == title }?.art?.let { BitmapFactory.decodeFile(it) }
+            ?: ContinueStore.items.firstNotNullOfOrNull { it.art }?.let { BitmapFactory.decodeFile(it) }
+        MediaHub.debugFake(MediaHub.Now("com.spotify.tv.android", title, artist, art, i.getBooleanExtra("playing", true), 95_000, 467_000,
             android.os.SystemClock.elapsedRealtime(), 1f))
-        h.postDelayed({ MediaHub.debugFake(null) }, 15_000)
+        h.removeCallbacks(npDemoEnd); h.postDelayed(npDemoEnd, i.getIntExtra("secs", 15) * 1000L)
     }
+    private val npDemoEnd = Runnable { MediaHub.debugFake(null) }
 
     /** Benchmark: scripted focus moves from inside the app (adb input spawns a VM per key and skews timing). */
     private fun runTour() {
@@ -989,10 +1000,10 @@ class HomeActivity : Activity() {
     /** Full-bleed app icon: adaptive icons are drawn layer by layer so they fill the tile, not a system mask. */
     /** App icons are drawn once and kept as PNGs: loading another app's resources is slow on this box. */
     private val glassIcons = HashMap<String, Bitmap>()
-    private fun iconBitmap(pkg: String, size: Int): Bitmap? {
-        if (!Prefs.glassIcons) return rawIcon(pkg, size)
+    private fun iconBitmap(pkg: String, size: Int, style: Int = Prefs.iconStyle): Bitmap? {
+        if (style == 2) return rawIcon(pkg, size)
         // Glass marks are read from a big copy of the icon, so their edges stay smooth.
-        val tinted = Prefs.iconStyle == 1
+        val tinted = style == 1
         return glassIcons.getOrPut("$pkg-$size-$tinted") { rawIcon(pkg, 256)?.let { runCatching { GlassIcon.make(it, size, tinted) }.getOrNull() } ?: rawIcon(pkg, size) ?: return null }
     }
 
