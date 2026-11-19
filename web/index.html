@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>MoLakaz TV</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- The film fills the TV at its own resolution; everything else is laid out on a 1280x720 grid and scaled. -->
+<div id="bg">
+  <video id="vA" muted playsinline preload="auto"></video>
+  <video id="vB" muted playsinline preload="auto"></video>
+  <img id="sA" class="still" alt="">
+  <img id="sB" class="still" alt="">
+  <div id="dimDay" class="dim"></div>
+  <div id="dimNight" class="dim"></div>
+</div>
+<div id="stage">
+  <div id="rail" class="glass panel"></div>
+  <div id="clockBox">
+    <div id="greet" class="soft"></div>
+    <div id="clock" class="soft"></div>
+  </div>
+  <div id="status" class="soft"></div>
+  <div id="where" class="soft"></div>
+  <div id="shelf">
+    <div id="tabs"></div>
+    <div id="empty" class="soft"></div>
+    <div id="row"></div>
+  </div>
+  <div id="scrim"></div>
+  <div id="sheet" class="glass panel"></div>
+  <div id="toast" class="glass panel"><span id="toastText"></span></div>
+</div>
+<script src="util.js"></script>
+<script src="platform.js"></script>
+<script src="weather.js"></script>
+<script src="films.js"></script>
+<script src="picks.js"></script>
+<script src="home.js"></script>
+<script src="screens.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

@@ -170,9 +170,19 @@ nothing is uninstalled).
 
 ### LG and Samsung TVs (preview)
 
-The same home screen as a web app for LG webOS and Samsung Tizen TVs: the films, the glass bar of your apps, the clock
-and weather, inputs and settings. It installs through each brand's Developer Mode; see [`webos/`](webos) and
-[`tizen/`](tizen). It's new and hasn't been tried on many TVs yet: reports are very welcome.
+The same home screen as a small web app for **LG webOS** (2016 TVs and newer) and **Samsung Tizen** (2017 and newer):
+the films, the glass bar of your apps, the clock and weather, Fresh picks, Inputs (HDMI 1–4, Live TV), All apps and
+Settings. On these TVs it's an app you open from the TV's own bar (neither lets an app replace its home screen).
+
+<p align="center"><img src="web/preview/home.jpg" width="49%" alt="The LG and Samsung version: a film of Jökulsárlón behind the glass bar and a row of apps"> <img src="web/preview/inputs.jpg" width="49%" alt="The Inputs screen with HDMI 1 to 4 and Live TV"></p>
+
+- **LG:** `MoLakazTV-webos.ipk` from the [latest release](https://github.com/benosss/molakaz-tv/releases/latest),
+  installed in Developer Mode with LG's `ares-install` or the webOS Dev Manager app. Steps in [`webos/`](webos).
+- **Samsung:** `MoLakazTV-tizen.wgt` from the release must be signed for your TV with Tizen Studio, or loaded through
+  TizenBrew. Steps in [`tizen/`](tizen).
+
+It's new and hasn't been tried on a real LG or Samsung TV yet, so reports (good or bad) are very welcome in
+[Issues](https://github.com/benosss/molakaz-tv/issues).
 
 ## Under the hood
 
