@@ -11,9 +11,9 @@ back.
 
 [**Download**](https://github.com/benosss/molakaz-tv/releases/latest) · [Install](#install) · [What it does](#what-it-does) · [Watch the film](https://benosss.github.io/molakaz-tv/film.html) · [Set-up guide (PDF)](docs/MoLakaz-TV-Setup-Guide.pdf) · [Make your own](#make-your-own)
 
-<a href="https://benosss.github.io/molakaz-tv/film.html"><img src="docs/assets/hero.webp" width="900" alt="MoLakaz TV: nature films from Manali, Zanzibar, Iceland, Bali and Cape Town behind a glass bar of apps, a clock and a row of cards; resting on a Spotify card turns the screen into the song"></a>
+<a href="https://benosss.github.io/molakaz-tv/film.html"><picture><source type="image/avif" srcset="https://github.com/benosss/molakaz-tv/raw/main/docs/assets/hero-live.avif"><img src="docs/assets/hero.webp" width="900" alt="MoLakaz TV on the TV: films of Manali, Zanzibar, Jökulsárlón, the rice terraces of Ubud and the Twelve Apostles in Cape Town play and fade one into the next behind a glass bar of apps, a clock and a row of cards"></picture></a>
 
-<sub>Real screens, captured on the TV. <a href="https://benosss.github.io/molakaz-tv/film.html">Watch the 40-second film</a>.</sub>
+<sub>The background is live: the films play behind Home and fade from one place to the next. <a href="https://benosss.github.io/molakaz-tv/film.html">Watch the 40-second film</a>.</sub>
 
 </div>
 
