@@ -1,0 +1,458 @@
+{
+ "version": 3,
+ "clips": [
+  {
+   "name": "le_morne",
+   "file": "clips/le_morne.mp4",
+   "keys": "blur/le_morne",
+   "keyCount": 41,
+   "label": "Le Morne Brabant, Mauritius",
+   "pexels": "31057976",
+   "by": "Lost Souls NV",
+   "tags": [
+    "bright",
+    "beach",
+    "water"
+   ],
+   "about": "UNESCO site, once a refuge for runaway slaves",
+   "apl": 130.5,
+   "duration": 20.033
+  },
+  {
+   "name": "lighthouse_mu",
+   "file": "clips/lighthouse_mu.mp4",
+   "keys": "blur/lighthouse_mu",
+   "keyCount": 41,
+   "label": "Île aux Fouquets lighthouse, Mauritius",
+   "pexels": "36238520",
+   "by": "Manuela Esposito",
+   "tags": [
+    "bright",
+    "calm",
+    "water"
+   ],
+   "about": "",
+   "apl": 129.3,
+   "duration": 20.033
+  },
+  {
+   "name": "black_rocks_mu",
+   "file": "clips/black_rocks_mu.mp4",
+   "keys": "blur/black_rocks_mu",
+   "keyCount": 40,
+   "label": "Black rock beach, Mauritius",
+   "pexels": "32616344",
+   "by": "Philippe Weickmann",
+   "tags": [
+    "bright",
+    "beach",
+    "water"
+   ],
+   "about": "",
+   "apl": 130.0,
+   "duration": 19.983
+  },
+  {
+   "name": "fishing_boats_mu",
+   "file": "clips/fishing_boats_mu.mp4",
+   "keys": "blur/fishing_boats_mu",
+   "keyCount": 40,
+   "label": "Fishing boats, Mauritius",
+   "pexels": "9904135",
+   "by": "Jyoti Pur",
+   "tags": [
+    "bright",
+    "calm",
+    "water"
+   ],
+   "about": "",
+   "apl": 140.0,
+   "duration": 19.983
+  },
+  {
+   "name": "angkor_wat",
+   "file": "clips/angkor_wat.mp4",
+   "keys": "blur/angkor_wat",
+   "keyCount": 46,
+   "label": "Angkor Wat, Cambodia",
+   "pexels": "32934406",
+   "by": "",
+   "tags": [
+    "mist",
+    "forest",
+    "calm"
+   ],
+   "about": "The world's largest religious monument, 12th century",
+   "apl": 109.8,
+   "duration": 23.0
+  },
+  {
+   "name": "ladakh",
+   "file": "clips/ladakh.mp4",
+   "keys": "blur/ladakh",
+   "keyCount": 52,
+   "label": "Ladakh, India",
+   "pexels": "18830352",
+   "by": "Vipul Sharma",
+   "tags": [
+    "bright",
+    "snow",
+    "mountain"
+   ],
+   "about": "A high-altitude desert in the Himalaya",
+   "apl": 135.7,
+   "duration": 26.0
+  },
+  {
+   "name": "manali",
+   "file": "clips/manali.mp4",
+   "keys": "blur/manali",
+   "keyCount": 52,
+   "label": "Manali, Himachal Pradesh, India",
+   "pexels": "26607785",
+   "by": "",
+   "tags": [
+    "cloudy",
+    "snow",
+    "mist",
+    "mountain",
+    "forest"
+   ],
+   "about": "Himalayan valley town at 2,050 m",
+   "apl": 102.4,
+   "duration": 26.0
+  },
+  {
+   "name": "twelve_apostles",
+   "file": "clips/twelve_apostles.mp4",
+   "keys": "blur/twelve_apostles",
+   "keyCount": 46,
+   "label": "Twelve Apostles, Cape Town, South Africa",
+   "pexels": "4873093",
+   "by": "Taryn Elliott",
+   "tags": [
+    "golden",
+    "water",
+    "mountain"
+   ],
+   "about": "Sandstone peaks above the Atlantic coast",
+   "apl": 101.4,
+   "duration": 23.0
+  },
+  {
+   "name": "giza",
+   "file": "clips/giza.mp4",
+   "keys": "blur/giza",
+   "keyCount": 52,
+   "label": "Pyramids of Giza, Egypt",
+   "pexels": "10717893",
+   "by": "",
+   "tags": [
+    "bright"
+   ],
+   "about": "The last standing wonder of the ancient world",
+   "apl": 142.7,
+   "duration": 26.0
+  },
+  {
+   "name": "machu_picchu",
+   "file": "clips/machu_picchu.mp4",
+   "keys": "blur/machu_picchu",
+   "keyCount": 30,
+   "label": "Machu Picchu, Peru",
+   "pexels": "29604765",
+   "by": "Lost Souls NV",
+   "tags": [
+    "cloudy",
+    "mist",
+    "mountain"
+   ],
+   "about": "15th-century Inca citadel at 2,430 m",
+   "apl": 128.4,
+   "duration": 15.0
+  },
+  {
+   "name": "milky_way",
+   "file": "clips/milky_way.mp4",
+   "keys": "blur/milky_way",
+   "keyCount": 52,
+   "label": "The Milky Way",
+   "pexels": "13382270",
+   "by": "",
+   "tags": [
+    "night",
+    "calm"
+   ],
+   "about": "Our galaxy holds 100 to 400 billion stars",
+   "apl": 65.8,
+   "duration": 26.0
+  },
+  {
+   "name": "jokulsarlon",
+   "file": "clips/jokulsarlon.mp4",
+   "keys": "blur/jokulsarlon",
+   "keyCount": 52,
+   "label": "Jökulsárlón, Iceland",
+   "pexels": "29477446",
+   "by": "Sergey Guk",
+   "tags": [
+    "golden",
+    "dawn",
+    "calm",
+    "water"
+   ],
+   "about": "Icebergs calved from Vatnajökull's glacier",
+   "apl": 120.2,
+   "duration": 26.0
+  },
+  {
+   "name": "perito_moreno",
+   "file": "clips/perito_moreno.mp4",
+   "keys": "blur/perito_moreno",
+   "keyCount": 52,
+   "label": "Perito Moreno Glacier, Argentina",
+   "pexels": "32881622",
+   "by": "Sergey Guk",
+   "tags": [
+    "cloudy",
+    "snow"
+   ],
+   "about": "An ice front 5 km wide and 70 m high",
+   "apl": 131.0,
+   "duration": 26.0
+  },
+  {
+   "name": "fitz_roy",
+   "file": "clips/fitz_roy.mp4",
+   "keys": "blur/fitz_roy",
+   "keyCount": 52,
+   "label": "Mount Fitz Roy, Patagonia",
+   "pexels": "33197879",
+   "by": "Sergey Guk",
+   "tags": [
+    "bright",
+    "snow",
+    "mountain"
+   ],
+   "about": "3,405 m, the emblem of Patagonia",
+   "apl": 117.8,
+   "duration": 26.0
+  },
+  {
+   "name": "torres",
+   "file": "clips/torres.mp4",
+   "keys": "blur/torres",
+   "keyCount": 52,
+   "label": "Torres del Paine, Chile",
+   "pexels": "39730323",
+   "by": "Marek Piwnicki",
+   "tags": [
+    "cloudy",
+    "mountain"
+   ],
+   "about": "Granite towers of Chilean Patagonia",
+   "apl": 134.1,
+   "duration": 26.0
+  },
+  {
+   "name": "halong_day",
+   "file": "clips/halong_day.mp4",
+   "keys": "blur/halong_day",
+   "keyCount": 52,
+   "label": "Ha Long Bay, Vietnam",
+   "pexels": "30391342",
+   "by": "Sergey Guk",
+   "tags": [
+    "mist",
+    "calm",
+    "water"
+   ],
+   "about": "Some 1,600 limestone islands and islets",
+   "apl": 117.4,
+   "duration": 26.0
+  },
+  {
+   "name": "halong_sunset",
+   "file": "clips/halong_sunset.mp4",
+   "keys": "blur/halong_sunset",
+   "keyCount": 52,
+   "label": "Ha Long Bay at sunset, Vietnam",
+   "pexels": "30391319",
+   "by": "Sergey Guk",
+   "tags": [
+    "golden",
+    "calm",
+    "water"
+   ],
+   "about": "UNESCO World Heritage site since 1994",
+   "apl": 98.4,
+   "duration": 26.0
+  },
+  {
+   "name": "godafoss",
+   "file": "clips/godafoss.mp4",
+   "keys": "blur/godafoss",
+   "keyCount": 40,
+   "label": "Goðafoss, Iceland",
+   "pexels": "29499245",
+   "by": "Sergey Guk",
+   "tags": [
+    "snow",
+    "cloudy",
+    "water"
+   ],
+   "about": "Its name means waterfall of the gods",
+   "apl": 125.7,
+   "duration": 20.0
+  },
+  {
+   "name": "hawaii",
+   "file": "clips/hawaii.mp4",
+   "keys": "blur/hawaii",
+   "keyCount": 40,
+   "label": "Hawaii, USA",
+   "pexels": "16769840",
+   "by": "Daniel Torobekov",
+   "tags": [
+    "bright",
+    "beach",
+    "water"
+   ],
+   "about": "",
+   "apl": 96.7,
+   "duration": 20.0
+  },
+  {
+   "name": "zanzibar",
+   "file": "clips/zanzibar.mp4",
+   "keys": "blur/zanzibar",
+   "keyCount": 52,
+   "label": "Zanzibar, Tanzania",
+   "pexels": "6168544",
+   "by": "SwissHumanity Stories",
+   "tags": [
+    "bright",
+    "beach",
+    "water"
+   ],
+   "about": "The spice island of the Indian Ocean",
+   "apl": 124.3,
+   "duration": 26.0
+  },
+  {
+   "name": "reef",
+   "file": "clips/reef.mp4",
+   "keys": "blur/reef",
+   "keyCount": 52,
+   "label": "Coral reef",
+   "pexels": "25915997",
+   "by": "Chris Solo",
+   "tags": [
+    "calm",
+    "underwater",
+    "water"
+   ],
+   "about": "",
+   "apl": 107.8,
+   "duration": 26.0
+  },
+  {
+   "name": "bacalar",
+   "file": "clips/bacalar.mp4",
+   "keys": "blur/bacalar",
+   "keyCount": 31,
+   "label": "Bacalar Lagoon, Mexico",
+   "pexels": "38746941",
+   "by": "Jorge Pantaleon",
+   "tags": [
+    "bright",
+    "water"
+   ],
+   "about": "The lagoon of seven colours",
+   "apl": 139.0,
+   "duration": 15.083
+  },
+  {
+   "name": "lofoten",
+   "file": "clips/lofoten.mp4",
+   "keys": "blur/lofoten",
+   "keyCount": 41,
+   "label": "Reine, Lofoten, Norway",
+   "pexels": "15613729",
+   "by": "Clément Proust",
+   "tags": [
+    "golden",
+    "dawn",
+    "water"
+   ],
+   "about": "Fishing village above the Arctic Circle",
+   "apl": 101.7,
+   "duration": 20.067
+  },
+  {
+   "name": "dolomites",
+   "file": "clips/dolomites.mp4",
+   "keys": "blur/dolomites",
+   "keyCount": 52,
+   "label": "Dolomites, Italy",
+   "pexels": "34946657",
+   "by": "Oskar Gross",
+   "tags": [
+    "bright",
+    "mountain"
+   ],
+   "about": "UNESCO-listed peaks of the Italian Alps",
+   "apl": 105.0,
+   "duration": 26.0
+  },
+  {
+   "name": "ubud_mist",
+   "file": "clips/ubud_mist.mp4",
+   "keys": "blur/ubud_mist",
+   "keyCount": 43,
+   "label": "Ubud, Bali",
+   "pexels": "6981424",
+   "by": "Mikhail Nilov",
+   "tags": [
+    "mist",
+    "rain",
+    "dawn",
+    "forest"
+   ],
+   "about": "",
+   "apl": 70.1,
+   "duration": 21.083
+  },
+  {
+   "name": "swiss_meadow",
+   "file": "clips/swiss_meadow.mp4",
+   "keys": "blur/swiss_meadow",
+   "keyCount": 52,
+   "label": "Swiss Alps, Switzerland",
+   "pexels": "32873553",
+   "by": "Oskar Gross",
+   "tags": [
+    "bright",
+    "mountain"
+   ],
+   "about": "",
+   "apl": 108.0,
+   "duration": 26.0
+  },
+  {
+   "name": "ubud_terraces",
+   "file": "clips/ubud_terraces.mp4",
+   "keys": "blur/ubud_terraces",
+   "keyCount": 52,
+   "label": "Rice terraces, Ubud, Bali",
+   "pexels": "4237848",
+   "by": "Michele Esposito",
+   "tags": [
+    "forest"
+   ],
+   "about": "Watered by subak, a 9th-century system",
+   "apl": 54.0,
+   "duration": 26.0
+  }
+ ]
+}

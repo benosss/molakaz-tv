@@ -69,6 +69,17 @@ object Prefs {
         get() = sp.getBoolean("music_sound", true)
         set(v) { sp.edit().putBoolean("music_sound", v).apply() }
 
+    /** Settings › Language: a code from [I18n.LANGS], or null to follow the TV. */
+    var language: String?
+        get() = sp.getString("language", null)
+        set(v) { sp.edit().apply { if (v == null) remove("language") else putString("language", v) }.apply() }
+
+    /** The quick-access bar's icons: 0 glass (white marks on dark glass), 1 tinted glass, 2 each app's own icon. */
+    var iconStyle: Int
+        get() = sp.getInt("icon_style", if (sp.getBoolean("glass_icons", true)) 0 else 2)
+        set(v) { sp.edit().putInt("icon_style", v).apply() }
+    val glassIcons get() = iconStyle != 2
+
     /** Screenshot mode for the project page (see [Apps.showcase]). */
     var showcase: Boolean
         get() = sp.getBoolean("showcase", false)

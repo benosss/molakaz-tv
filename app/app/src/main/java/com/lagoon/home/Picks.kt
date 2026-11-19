@@ -16,7 +16,7 @@ import java.net.URLEncoder
 import kotlin.concurrent.thread
 
 /**
- * Fresh picks, refreshed hourly, from apps already on the box and without any developer keys:
+ * Fresh picks, refreshed twice a day (after 6:00 and after 18:00), from apps already on the box and without any developer keys:
  *  - Netflix: official Top 10 films + series for the chosen location's country (Netflix Tudum), with artwork and title IDs.
  *  - YouTube: this week's trending videos from YouTube Charts for the location's country (US chart where a country has none).
  *  - Spotify: this week's New Music Friday (public embed), cover art via Spotify oEmbed.
@@ -46,7 +46,26 @@ object Picks {
         }
     }
 
-    fun stale() = System.currentTimeMillis() - updatedAt > 55 * 60_000L
+    /** Due after each 6:00 and 18:00 (charts change daily at most, Netflix's Top 10 weekly). */
+    /** Badges and lines are kept in English (they're also used to sort the picks); shown in the chosen language. */
+    fun localize(s: String): String {
+        Regex("^NETFLIX · #(\\d+) IN (.+)$").find(s)?.let { return tr("NETFLIX · #{n} IN {country}", "n" to it.groupValues[1], "country" to it.groupValues[2]) }
+        Regex("^YOUTUBE · #(\\d+) TRENDING(.*)$").find(s)?.let { return tr("YOUTUBE · #{n} TRENDING", "n" to it.groupValues[1]) + it.groupValues[2] }
+        Regex("^(Film|Series) · Top 10 this week$").find(s)?.let { return tr("{kind} · Top 10 this week", "kind" to tr(it.groupValues[1])) }
+        if (s == "SPOTIFY · NEW MUSIC FRIDAY") return tr(s)
+        return s
+    }
+
+    fun stale(): Boolean {
+        if (updatedAt == 0L) return true
+        val c = java.util.Calendar.getInstance()
+        val h = c.get(java.util.Calendar.HOUR_OF_DAY)
+        c.set(java.util.Calendar.MINUTE, 0); c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0)
+        if (h >= 18) c.set(java.util.Calendar.HOUR_OF_DAY, 18)
+        else if (h >= 6) c.set(java.util.Calendar.HOUR_OF_DAY, 6)
+        else { c.add(java.util.Calendar.DAY_OF_MONTH, -1); c.set(java.util.Calendar.HOUR_OF_DAY, 18) }
+        return updatedAt < c.timeInMillis
+    }
 
     fun refresh(place: Prefs.Place) = thread(name = "picks") {
         val nf = runCatching { netflix(place.country) }.getOrDefault(emptyList())

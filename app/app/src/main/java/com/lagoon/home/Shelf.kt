@@ -35,7 +35,7 @@ class ShelfItem(val badge: String, val title: String, val sub: String, val progr
  * caching Home) anything outside the view's own bounds is cut off. With the margin inside the view, nothing is.
  */
 class Shelf(ctx: Context, private val provider: (Int) -> List<ShelfItem>, private val emptyText: (Int) -> String) : FrameLayout(ctx) {
-    private val names = arrayOf("Continue watching", "Fresh picks")
+    private val names = arrayOf(tr("Continue watching"), tr("Fresh picks"))
     private val tabs: List<TextView> = names.map { ctx.label(17f, "sans-serif-medium", bold = true, shadow = true).apply { text = it } }
     val pill = GlassPanel(ctx, D.u(17f), shadow = 0.14f)
     private val row = FrameLayout(ctx).apply { clipChildren = false; clipToPadding = false }

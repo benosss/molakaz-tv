@@ -33,8 +33,8 @@ object Apps {
     private val DEFAULT_CARD = c(0xFF0E7490, 0xFF062A3A)
 
     /** The bar on the project page's screenshots: well-known apps only. */
-    private val SHOWCASE_RAIL = listOf("com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom",
-        "com.spotify.tv.android", "com.apple.atve.androidtv.appletv", "com.plexapp.android")
+    private val SHOWCASE_RAIL = listOf("com.spotify.tv.android", "com.netflix.ninja", "com.google.android.youtube.tv",
+        "com.amazon.amazonvideo.livingroom", "com.apple.atve.androidtv.appletv", "com.plexapp.android")
 
     private lateinit var app: Context
     private var all: List<App> = BUILT_IN

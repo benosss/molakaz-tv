@@ -35,7 +35,11 @@ object AudioViz {
     val live get() = v != null && SystemClock.uptimeMillis() - lastSignal < 1500
     fun level(i: Int) = level[i]
 
-    fun start(ctx: Context) {
+    private val owners = HashSet<String>()
+
+    /** Start listening for [who] ("np": Now playing, "music": a song preview); it runs while anyone wants it. */
+    fun start(ctx: Context, who: String = "np") {
+        owners += who
         if (v != null) return
         if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return
         v = runCatching {
@@ -52,7 +56,9 @@ object AudioViz {
         }.onFailure { Log.w("AudioViz", "no visualizer: $it") }.getOrNull()
     }
 
-    fun stop() {
+    fun stop(who: String = "np") {
+        owners -= who
+        if (owners.isNotEmpty()) return
         v?.let { runCatching { it.enabled = false; it.release() } }
         v = null
     }

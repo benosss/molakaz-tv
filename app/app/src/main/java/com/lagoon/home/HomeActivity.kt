@@ -217,7 +217,9 @@ class HomeActivity : Activity() {
 
     private fun addRailTile(top: Float?, bottom: Float?, pkg: String?, glyph: Int, action: (View) -> Unit) {
         val t = Tile(this, D.u(17f))
-        if (pkg != null) t.bitmap = iconBitmap(pkg, D.ui(62f)) else { t.glyph = getDrawable(glyph)!!.mutate(); t.raise = false }
+        if (pkg != null) t.bitmap = iconBitmap(pkg, D.ui(62f))
+        else if (Prefs.glassIcons) { t.bitmap = GlassIcon.glyph(getDrawable(glyph)!!.mutate(), D.ui(62f)); t.raise = false }
+        else { t.glyph = getDrawable(glyph)!!.mutate(); t.raise = false }
         rail.addView(t, FrameLayout.LayoutParams(D.ui(62f), D.ui(62f)).apply {
             gravity = Gravity.CENTER_HORIZONTAL or (if (top != null) Gravity.TOP else Gravity.BOTTOM)
             if (top != null) topMargin = D.ui(top) else bottomMargin = D.ui(bottom!!)
@@ -305,9 +307,9 @@ class HomeActivity : Activity() {
 
     private fun buildShelf() {
         shelf = Shelf(this, ::shelfItems) { tab ->
-            if (tab == 0) "Nothing to continue yet. Play something on Netflix, YouTube or Spotify and it shows up here."
-            else if (Picks.updatedAt == 0L) "Fresh picks are loading: Netflix Top 10 in ${Prefs.place.country}, popular on YouTube and New Music Friday on Spotify."
-            else "Fresh picks couldn't refresh. They'll try again within the hour."
+            if (tab == 0) tr("Nothing to continue yet. Play something on Netflix, YouTube or Spotify and it shows up here.")
+            else if (Picks.updatedAt == 0L) tr("Fresh picks are loading: Netflix Top 10 in {country}, popular on YouTube and New Music Friday on Spotify.", "country" to Prefs.place.country)
+            else tr("Fresh picks couldn't refresh. They'll try again soon.")
         }
         // The shelf's view reaches past what it shows (see Shelf.PAD_X): the visible row still spans 164..1224 x 486..686.
         ui.addView(shelf, place(MATCH, D.ui(200f + Shelf.PAD_TOP + Shelf.PAD_BOTTOM), l = 164f - Shelf.PAD_X, r = 56f - Shelf.PAD_X, b = 34f - Shelf.PAD_BOTTOM))
@@ -354,11 +356,11 @@ class HomeActivity : Activity() {
             val pv = when (p.app) {
                 "youtube" -> yt?.let { PreviewSrc(it) }
                 "netflix" -> PreviewSrc(trailerOf = p.title)
-                "spotify" -> SpotifyTracks.id(p.link)?.let { PreviewSrc(track = it, cover = pic, tint = tint) }
+                "spotify" -> SpotifyTracks.id(p.link)?.let { PreviewSrc(track = it, cover = pic, tint = tint, title = p.title, sub = p.sub) }
                 else -> null
             }
             // A YouTube pick that's been previewed shows how far, and opens there.
-            ShelfItem(p.badge, p.title, p.sub, yt?.let { Watched.fraction(it) } ?: -1f, pic, tint, pv) {
+            ShelfItem(Picks.localize(p.badge), p.title, Picks.localize(p.sub), yt?.let { Watched.fraction(it) } ?: -1f, pic, tint, pv) {
                 Picks.open(this, p, yt?.let { Watched.resume(it) } ?: -1)
             }
         }
@@ -370,7 +372,7 @@ class HomeActivity : Activity() {
             val dur = mark?.let { m -> (m.dur * 1000).toLong() } ?: it.dur
             fun subAt(posMs: Long, durMs: Long): String {
                 val left = if (durMs > 0) ((durMs - posMs).coerceAtLeast(0) / 60000L) else -1L
-                return if (left > 0) "${it.sub.ifBlank { Apps.name(it.pkg) ?: "" }} · $left min left".trimStart(' ', '·') else it.sub
+                return if (left > 0) ("${it.sub.ifBlank { Apps.name(it.pkg) ?: "" }} · " + tr("{n} min left", "n" to left)).trimStart(' ', '·') else it.sub
             }
             val pic = it.art?.let { p -> artCache.getOrPut(p) { BitmapFactory.decodeFile(p) } }; val tint = Apps.card(it.pkg)
             // Previews: YouTube resumes its own video a few seconds before where you stopped; film apps show the trailer;
@@ -378,7 +380,7 @@ class HomeActivity : Activity() {
             val pv = when {
                 it.pkg == "com.google.android.youtube.tv" -> yt?.let { id -> PreviewSrc(id, ((it.pos / 1000) - 3).toInt().coerceAtLeast(0), since = it.ts) }
                 Apps.trailers(it.pkg) -> PreviewSrc(trailerOf = it.title)
-                it.pkg == "com.spotify.tv.android" -> (SpotifyTracks.id(it.link) ?: SpotifyTracks.searchKey(it.title, it.sub))?.let { id -> PreviewSrc(track = id, cover = pic, tint = tint) }
+                it.pkg == "com.spotify.tv.android" -> (SpotifyTracks.id(it.link) ?: SpotifyTracks.searchKey(it.title, it.sub))?.let { id -> PreviewSrc(track = id, cover = pic, tint = tint, title = it.title, sub = it.sub) }
                 else -> null
             }
             ShelfItem((Apps.name(it.pkg) ?: "").uppercase(), it.title, subAt(pos, dur), if (dur > 0) pos.toFloat() / dur else -1f,
@@ -410,13 +412,13 @@ class HomeActivity : Activity() {
         val n = MediaHub.now
         showNow(n != null && !inSaver)
         if (n == null) {
-            npLabel.text = "NOW PLAYING"; npLabel.setTextColor(Theme.ink2)
-            swap(npTitle, "Nothing playing")
-            swap(npSub, if (MediaHub.permitted) "Music and shows appear here" else "Media access is off")
+            npLabel.text = tr("NOW PLAYING"); npLabel.setTextColor(Theme.ink2)
+            swap(npTitle, tr("Nothing playing"))
+            swap(npSub, if (MediaHub.permitted) tr("Music and shows appear here") else tr("Media access is off"))
             npArt.set(null); npBar.visibility = View.INVISIBLE
             npGlyph.setImageResource(R.drawable.ic_play)
         } else {
-            npLabel.text = (if (n.playing) "NOW PLAYING · " else "PAUSED · ") + (Apps.name(n.pkg) ?: "").uppercase()
+            npLabel.text = (if (n.playing) tr("NOW PLAYING") else tr("PAUSED")) + " · " + (Apps.name(n.pkg) ?: "").uppercase()
             npLabel.setTextColor(brandOnVideo(n.pkg))
             swap(npTitle, n.title); swap(npSub, n.sub.ifBlank { Apps.name(n.pkg) ?: "" })
             artFor(n) { b -> if (MediaHub.now?.title == n.title) npArt.set(b) }
@@ -449,7 +451,7 @@ class HomeActivity : Activity() {
             wxIcon.setImageResource(Weather.icon(w.code, w.isDay)); temp.text = "${w.temp}°"
             wxText.text = Prefs.place.name
         } else { wxIcon.setImageResource(R.drawable.ic_cloud); temp.text = "--°"; wxText.text = Prefs.place.name }
-        speed.text = when { SpeedTest.running -> "Testing…"; SpeedTest.mbps != null -> "${SpeedTest.mbps} Mbps"; else -> "Wi-Fi" }
+        speed.text = when { SpeedTest.running -> tr("Testing…"); SpeedTest.mbps != null -> "${SpeedTest.mbps} Mbps"; else -> "Wi-Fi" }
         val gn = Goodnight.active
         listOf<View>(gnSep, gnIcon, gnText).forEach { it.visibility = if (gn) View.VISIBLE else View.GONE }
         if (gn) gnText.text = "${Goodnight.minutesLeft()} min"
@@ -525,7 +527,7 @@ class HomeActivity : Activity() {
             clock.text = DateFormat.format(if (DateFormat.is24HourFormat(this)) "HH:mm" else "h:mm", now)
             date.text = DateFormat.format("EEEE d MMMM", now)
             val hr = cal.get(Calendar.HOUR_OF_DAY)
-            val hello = when { hr < 5 -> "Good night"; hr < 12 -> "Good morning"; hr < 17 -> "Good afternoon"; else -> "Good evening" }
+            val hello = tr(when { hr < 5 -> "Good night"; hr < 12 -> "Good morning"; hr < 17 -> "Good afternoon"; else -> "Good evening" })
             greet.text = "$hello  ·  ${date.text}".uppercase()
             applyTheme(true)
             if (Goodnight.active || gnText.visibility == View.VISIBLE) renderStatus()
@@ -729,7 +731,14 @@ class HomeActivity : Activity() {
     }
 
     private val idle = Runnable { enterSaver() }
-    private fun resetIdle() { h.removeCallbacks(idle) }   // idle is handled by the system screensaver (VideoDream)
+    private fun resetIdle() { h.removeCallbacks(idle); armQuietInstall() }   // idle is handled by the system screensaver (VideoDream)
+
+    /** A downloaded update installs once Home has been left alone for a while, with nothing playing or previewing. */
+    private val quietInstall = Runnable {
+        if (Updater.state == Updater.State.READY && resumed && !settings.isOpen && !setup.isOpen && !preview.shown && !music.shown && !MediaHub.anyPlaying())
+            Updater.install()
+    }
+    private fun armQuietInstall() { h.removeCallbacks(quietInstall); if (Updater.state == Updater.State.READY) h.postDelayed(quietInstall, 120_000) }
 
     private fun animateSaver(to: Float, ms: Long) {
         saverAnim?.cancel()
@@ -780,6 +789,7 @@ class HomeActivity : Activity() {
         Ambient.enter(Ambient.Where.HOME)
         preview.start(); music.start(); if (firstDrawn) predictSoon(2500)
         if (setup.isOpen) setup.resumed()
+        Updater.check(); armQuietInstall()
         if (!inSaver) animateIn()
         lastMinute = -1; h.removeCallbacks(ticker); h.post(ticker)
         resetIdle()
@@ -849,6 +859,8 @@ class HomeActivity : Activity() {
                     renderStatus(); refreshWeatherNow()
                 }
                 "theme" -> { forcedTheme = i.getFloatExtra("t", -1f).takeIf { it in 0f..1f }; applyTheme(true) }
+                "film" -> carousel.debugFilm(i.getStringExtra("name"))
+                "iconstyle" -> { Prefs.iconStyle = i.getIntExtra("s", 0).coerceIn(0, 2); rebuildRail(true) }
                 "tour" -> runTour()
                 else -> android.util.Log.w("Tour", "unknown command $cmd")
             }
@@ -964,9 +976,10 @@ class HomeActivity : Activity() {
     private fun ytId(link: String) = Regex("""[?&]v=([A-Za-z0-9_-]{11})""").find(link)?.groupValues?.get(1)
         ?: Regex("""youtu\.be/([A-Za-z0-9_-]{11})""").find(link)?.groupValues?.get(1)
 
-    private fun installed(pkg: String) = Apps.installed(pkg)
+    private fun installed(entry: String) = if (Inputs.isInput(entry)) Inputs.find(this, entry) != null else Apps.installed(entry)
 
     private fun launch(pkg: String, from: View?) {
+        if (Inputs.isInput(pkg)) { Inputs.open(this, pkg.removePrefix(Inputs.PREFIX)); return }
         val i = packageManager.getLeanbackLaunchIntentForPackage(pkg) ?: packageManager.getLaunchIntentForPackage(pkg) ?: return
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val opts = from?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
@@ -975,7 +988,16 @@ class HomeActivity : Activity() {
 
     /** Full-bleed app icon: adaptive icons are drawn layer by layer so they fill the tile, not a system mask. */
     /** App icons are drawn once and kept as PNGs: loading another app's resources is slow on this box. */
+    private val glassIcons = HashMap<String, Bitmap>()
     private fun iconBitmap(pkg: String, size: Int): Bitmap? {
+        if (!Prefs.glassIcons) return rawIcon(pkg, size)
+        // Glass marks are read from a big copy of the icon, so their edges stay smooth.
+        val tinted = Prefs.iconStyle == 1
+        return glassIcons.getOrPut("$pkg-$size-$tinted") { rawIcon(pkg, 256)?.let { runCatching { GlassIcon.make(it, size, tinted) }.getOrNull() } ?: rawIcon(pkg, size) ?: return null }
+    }
+
+    private fun rawIcon(pkg: String, size: Int): Bitmap? {
+        if (Inputs.isInput(pkg)) return Inputs.find(this, pkg)?.let { Inputs.tile(it.label, size) }
         Apps.showcaseIcon(pkg)?.let { f -> BitmapFactory.decodeFile(f.path)?.let { return Bitmap.createScaledBitmap(it, size, size, true) } }
         val stamp = runCatching { packageManager.getPackageInfo(pkg, 0).lastUpdateTime }.getOrNull() ?: return null
         val f = File(cacheDir, "icons/$pkg-$size-$stamp.png")

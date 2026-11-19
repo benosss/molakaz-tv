@@ -31,7 +31,8 @@ class NowPlayingService : NotificationListenerService() {
 class HomeApp : android.app.Application() {
     override fun onCreate() {
         super.onCreate(); BootTrace.mark("app start")
-        Prefs.init(this); Apps.init(this); Picks.init(this); ContinueStore.init(this); Goodnight.init(this); Ambient.init(this); Remote.start(this)
+        Safety.install(this)
+        Prefs.init(this); I18n.init(this); Apps.init(this); Updater.init(this); Picks.init(this); ContinueStore.init(this); Goodnight.init(this); Ambient.init(this); Remote.start(this)
         // First run on a my.t box: put its live TV app first in the quick access bar.
         if (!Prefs.railSaved) LiveTv.find(this)?.let { Prefs.rail = listOf(it) + Apps.defaultRail().filter { p -> Apps.installed(p) } }
         BootTrace.mark("app ready")

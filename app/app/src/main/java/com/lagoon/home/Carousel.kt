@@ -49,6 +49,9 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
         // shows the old film's edges until ~99%. So the glass runs the picture's own fade, GLASS_LAG behind (with the old
         // 300 ms start and a 1.8 s fade it read ~0.2 s early at the end). The place name changes halfway.
         const val GLASS_LAG = 350L
+        const val FLOW_FRAMES = 8          // frames of the new film before its change lands (see Jump)
+        const val FLOW_MS = 150L
+        const val SETTLE_MS = 60L          // after the display time of that frame
         private val easeIn: TimeInterpolator = PathInterpolator(0.4f, 0f, 0.7f, 1f)
         fun dir(ctx: Context): File? = ctx.getExternalFilesDir(null)
 
@@ -100,7 +103,15 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
     private val available get() = Scenes.count > 0 && (Scenes.perFilm || single.exists())
 
     // A jump is done when the first frame from the new place is about to show (see build()).
-    private class Jump(val at: Long, val prevPts: Long, val prevAt: Long)
+    /**
+     * A seek in flight. [xf]: a film change under the copy. There the first frame the decoder reports isn't yet on the
+     * screen (a fresh decoder on this box can sit on it, or the plane can still show the old picture, for a few hundred
+     * ms), and fading the copy then let the glass run ahead of the picture. So a change only lands once the new film is
+     * really flowing: [FLOW_FRAMES] frames covering at least FLOW_MS of film, then that frame's display time.
+     */
+    private class Jump(val at: Long, val prevPts: Long, val prevAt: Long, val xf: Boolean) {
+        var firstPts = -1L; var firstAt = 0L; var frames = 0
+    }
     @Volatile private var pending: Jump? = null
     @Volatile private var lastPts = Long.MIN_VALUE
     @Volatile private var lastFrameAt = 0L
@@ -177,15 +188,20 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
         volume = 0f
         repeatMode = if (Scenes.perFilm) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
         setVideoSurfaceView(video)
-        setVideoFrameMetadataListener { ptsUs, _, _, _ ->
+        setVideoFrameMetadataListener { ptsUs, releaseNs, _, _ ->
             val t = SystemClock.elapsedRealtime(); val pts = ptsUs / 1000
             lastPts = pts; lastFrameAt = t
             val j = pending ?: return@setVideoFrameMetadataListener
             if (t - j.at < 60) return@setVideoFrameMetadataListener
             // Still the old place (a frame queued before the jump): wait for the new one.
             if (j.prevAt > 0 && j.at - j.prevAt < 250 && abs(pts - j.prevPts) < 600) return@setVideoFrameMetadataListener
+            if (j.firstPts < 0) { j.firstPts = pts; j.firstAt = t }
+            j.frames++
+            if (j.xf && (j.frames < FLOW_FRAMES || pts - j.firstPts < FLOW_MS)) return@setVideoFrameMetadataListener
             pending = null
-            h.post { landed() }
+            val wait = ((releaseNs - System.nanoTime()) / 1_000_000L).coerceIn(0L, 250L) + if (j.xf) SETTLE_MS else 0L
+            if (j.xf) Log.i("Carousel", "xf: new film flowing ${t - j.at} ms after the jump (first frame at ${j.firstAt - j.at} ms, ${j.frames} frames), fade in $wait ms")
+            h.postDelayed({ landed() }, wait)
         }
         selfHeal { if (Scenes.perFilm) Playback.now() else Scenes.durationMs.let { d -> if (d > 0) Playback.now() % d else 0L } }
         addListener(object : Player.Listener {
@@ -241,7 +257,7 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
         if (to != target) retries = 0
         target = to
         if (phase != Phase.XF_JUMP) phase = Phase.SEEKING
-        pending = Jump(SystemClock.elapsedRealtime(), lastPts, lastFrameAt)
+        pending = Jump(SystemClock.elapsedRealtime(), lastPts, lastFrameAt, phase == Phase.XF_JUMP)
         if (phase == Phase.SEEKING) { bd.posMs = to }
         mark(to)
         p.seekTo(to)
@@ -263,6 +279,14 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
             val s = if (phase == Phase.XF_JUMP) xfScene else scene
             p.stop(); mainFile = null; s?.let { load(p, it) }; jump(target); p.playWhenReady = running
         } else { Log.w("Carousel", "no frame after jump, carrying on"); pending = null; landed() }
+    }
+
+    /** Screenshots: change to the film called [name] now (through the veil), when no change is under way. */
+    fun debugFilm(name: String?) {
+        val s = Scenes.list.firstOrNull { it.name == name } ?: return
+        if (phase != Phase.PLAYING) return
+        Log.i("Carousel", "debug: changing to ${s.name}")
+        veilChange(s)
     }
 
     /** Diagnostics: hold the veil at [v] for a while (to look at it), then carry on. */
@@ -398,6 +422,7 @@ class Carousel(private val ctx: Context, private val video: SurfaceView, private
     private fun startFade() {
         val nx = xfScene ?: return
         phase = Phase.XF_FADE
+        Log.i("Carousel", "xf: fade starts, glass follows in $GLASS_LAG ms")
         // Glass: keep the old film's blur (before the keyframes switch to the new film), then blend to the new one.
         glassAnim?.cancel(); glassAnim = null
         bd.freeze(next?.currentPosition ?: bd.posMs)

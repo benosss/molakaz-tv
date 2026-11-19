@@ -63,11 +63,11 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
     private val h = Handler(Looper.getMainLooper())
     private var state = State.WELCOME
     private val steps = listOf(
-        Step("Allow the set-up", "One question on the TV: allow it"),
-        Step("Permissions", "Now playing, sound, the screensaver"),
-        Step("Apps", "From the USB stick, if there are any"),
-        Step("Nature films", "From the USB stick, or downloaded"),
-        Step("Home screen", "MoLakaz TV opens with the Home button"),
+        Step(tr("Allow the set-up"), tr("One question on the TV: allow it")),
+        Step(tr("Permissions"), tr("Now playing, sound, the screensaver")),
+        Step(tr("Apps"), tr("From the USB stick, if there are any")),
+        Step(tr("Nature films"), tr("From the USB stick, or downloaded")),
+        Step(tr("Home screen"), tr("MoLakaz TV opens with the Home button")),
     )
     private val title = ctx.label(34f, "sans-serif-medium", bold = true)
     private val hint = ctx.label(17f).apply { maxLines = 6; ellipsize = null; setLineSpacing(0f, 1.18f) }
@@ -123,19 +123,19 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
     private fun render() {
         steps.forEachIndexed { i, s -> rows[i].first.mark = s.mark; rows[i].second.second.text = s.sub }
         when (state) {
-            State.WELCOME -> { action.text = "OK   Start"; later.text = "BACK   Later" }
-            State.DEV -> { action.text = "OK   Open the TV's settings"; later.text = "BACK   Later" }
+            State.WELCOME -> { action.text = tr("OK   Start"); later.text = tr("BACK   Later") }
+            State.DEV -> { action.text = tr("OK   Open the TV's settings"); later.text = tr("BACK   Later") }
             State.WORKING -> { action.text = ""; later.text = "" }
-            State.FAILED -> { action.text = "OK   Try again"; later.text = "BACK   Later" }
-            State.DONE -> { action.text = "OK   Start watching"; later.text = "" }
+            State.FAILED -> { action.text = tr("OK   Try again"); later.text = tr("BACK   Later") }
+            State.DONE -> { action.text = tr("OK   Start watching"); later.text = "" }
         }
     }
 
     private fun welcome() {
         state = State.WELCOME
-        title.text = "Welcome to MoLakaz TV"
-        hint.text = "Let's get this TV ready. It takes about two minutes, and nothing on the TV is removed: " +
-            "the old home screen is only switched off, and Settings can bring it back.\n\nIf you have the MoLakaz USB stick, keep it plugged in."
+        title.text = tr("Welcome to MoLakaz TV")
+        hint.text = tr("Let's get this TV ready. It takes about two minutes, and nothing on the TV is removed: the old home screen is only switched off, and Settings can bring it back.") +
+            "\n\n" + tr("If you have the MoLakaz USB stick, keep it plugged in.")
         render()
     }
 
@@ -148,11 +148,13 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
 
     private fun needDev() {
         state = State.DEV
-        title.text = "One switch first"
-        hint.text = if (!Setup.devOn(context))
-            "1. Press OK: the TV's settings open on About.\n2. Go down to Build and press OK on it 7 times, until it says you're a developer.\n" +
-                "3. Press Back, open Developer options, and turn on USB debugging.\n4. Press Home: set-up carries on by itself."
-        else "1. Press OK: the TV's settings open on Developer options.\n2. Turn on USB debugging.\n3. Press Home: set-up carries on by itself."
+        title.text = tr("One switch first")
+        hint.text = if (!Setup.devOn(context)) listOf(
+            tr("Press OK: the TV's settings open on About."), tr("Go down to Build and press OK on it 7 times, until it says you're a developer."),
+            tr("Press Back, open Developer options, and turn on USB debugging."), tr("Press Home: set-up carries on by itself.")
+        ).mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
+        else listOf(tr("Press OK: the TV's settings open on Developer options."), tr("Turn on USB debugging."), tr("Press Home: set-up carries on by itself."))
+            .mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
         render()
         h.removeCallbacks(watchDev); h.postDelayed(watchDev, 1000)
     }
@@ -179,26 +181,26 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
 
     private fun fail(i: Int, why: String) = ui {
         steps[i].mark = Mark.FAIL; state = State.FAILED
-        title.text = "That didn't work"; hint.text = why; bar.visibility = INVISIBLE
+        title.text = tr("That didn't work"); hint.text = why; bar.visibility = INVISIBLE
     }
 
     private fun work() = thread(name = "setup") {
         val ctx = context; val pkg = ctx.packageName
         val dst = Setup.files(ctx).path
-        ui { title.text = "Setting up…" }
+        ui { title.text = tr("Setting up…") }
 
         // 1. The box's adb, with this app's own key: the TV asks once.
-        mark(0, Mark.RUN, "Waiting for your OK on the TV")
-        say("A message on the TV asks \"Allow USB debugging?\".\n\nTick \"Always allow from this computer\", then choose OK.")
+        mark(0, Mark.RUN, tr("Waiting for your OK on the TV"))
+        say(tr("A message on the TV asks \"Allow USB debugging?\".\n\nTick \"Always allow from this computer\", then choose OK."))
         if (Remote.shell("echo ok")?.contains("ok") != true) {
-            fail(0, "The TV didn't allow it. Press OK to ask again, and this time choose OK on the TV's message (with \"Always allow\" ticked).")
+            fail(0, tr("The TV didn't allow it. Press OK to ask again, and this time choose OK on the TV's message (with \"Always allow\" ticked)."))
             return@thread
         }
-        mark(0, Mark.OK, "Allowed")
+        mark(0, Mark.OK, tr("Allowed"))
 
         // 2. What the features need: media sessions (Now playing, Continue watching), the visualiser, the screensaver
         //    delay and Goodnight's dimming, and the nature screensaver itself.
-        mark(1, Mark.RUN); say("Giving MoLakaz TV what it needs…")
+        mark(1, Mark.RUN); say(tr("Giving MoLakaz TV what it needs…"))
         val svc = "$pkg/$pkg.NowPlayingService"
         val cur = Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners").orEmpty()
         val listeners = if (svc in cur) cur else listOf(cur, svc).filter { it.isNotBlank() }.joinToString(":")
@@ -225,7 +227,7 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
             // The stick's apps join the quick-access bar (the bar may already have been saved with the box's live TV app).
             h.post { val add = Apps.extras().filter { it.rail && Apps.installed(it.pkg) }.map { it.pkg }.filter { it !in Prefs.rail }; if (add.isNotEmpty()) Prefs.rail = Prefs.rail + add }
         }
-        mark(2, if (apks.isEmpty()) Mark.SKIP else Mark.OK, if (apks.isEmpty()) "None to add" else "${apks.size} installed")
+        mark(2, if (apks.isEmpty()) Mark.SKIP else Mark.OK, if (apks.isEmpty()) tr("None to add") else tr("{n} installed", "n" to apks.size))
 
         // 4. The films: copied from the stick if it has them, else downloaded.
         if (!Setup.hasFilms(ctx)) {
@@ -239,22 +241,22 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
                 return@thread
             }
             mark(3, Mark.OK, if (fromUsb) "Copied from the USB stick" else "Downloaded")
-        } else mark(3, Mark.OK, "Already here")
+        } else mark(3, Mark.OK, tr("Already here"))
 
         // 5. The home screen: the box's own launcher is switched off (not removed), MoLakaz TV becomes Home.
-        mark(4, Mark.RUN); say("Making MoLakaz TV the home screen…")
+        mark(4, Mark.RUN); say(tr("Making MoLakaz TV the home screen…"))
         val off = OriginalHome.present(ctx).joinToString("; ") { "pm disable-user --user 0 $it" }
         Remote.shell((if (off.isNotEmpty()) "$off; " else "") + "cmd package set-home-activity $pkg/$pkg.HomeActivity")
-        mark(4, Mark.OK, "Done")
+        mark(4, Mark.OK, tr("Done"))
 
         // Weather and picks for where the box is, if it was never chosen.
         if (!Prefs.placeSaved) Locate.detect { r -> if (r != null) Prefs.place = Prefs.Place(r.name, r.country, r.lat, r.lon, r.cc) }
 
         ui {
             state = State.DONE; bar.visibility = INVISIBLE
-            title.text = "All set"
-            hint.text = "Press Home on the remote any time to come back here.\n\n" +
-                "Tip: Settings › Phone remote turns any phone into a remote, and Settings › Original home screen brings back the old one."
+            title.text = tr("All set")
+            hint.text = tr("Press Home on the remote any time to come back here.") + "\n\n" +
+                tr("Tip: Settings › Phone remote turns any phone into a remote, and Settings › Original home screen brings back the old one.")
         }
     }
 
@@ -265,7 +267,7 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
         Remote.shell("mkdir -p '$dst/clips' '$dst/blur' '$dst/ambient'")
         val chunks = units.chunked(4)
         chunks.forEachIndexed { k, chunk ->
-            mark(3, Mark.RUN, "Copying from the USB stick: ${((k + 1) * 100) / chunks.size}%")
+            mark(3, Mark.RUN, tr("Copying from the USB stick: {p}%", "p" to ((k + 1) * 100) / chunks.size))
             progress((k + 1f) / chunks.size)
             val cmd = chunk.joinToString("; ") { u ->
                 if (u.endsWith("/")) { val d = u.trimEnd('/'); "mkdir -p '$dst/$d' && cp -r '$src/$d/.' '$dst/$d/'" } else "cp '$src/$u' '$dst/$u'"
@@ -278,14 +280,14 @@ class SetupScreen(ctx: Context, private val done: (Boolean) -> Unit) : GlassPane
 
     /** Download the films zip and unpack it as it arrives (no room on these boxes for the zip and its contents). */
     private fun downloadFilms(dst: File): Boolean = runCatching {
-        say("Downloading the nature films. On a good Wi-Fi this takes a few minutes; the TV can be used again as soon as it's done.")
+        say(tr("Downloading the nature films. On a good Wi-Fi this takes a few minutes; the TV can be used again as soon as it's done."))
         val c = URL(Setup.FILMS_URL).openConnection() as HttpURLConnection
         c.connectTimeout = 15_000; c.readTimeout = 30_000; c.instanceFollowRedirects = true
         val total = c.contentLengthLong.takeIf { it > 0 } ?: 400_000_000L
         var read = 0L; var lastPct = -1
         val counting = object : java.io.FilterInputStream(c.inputStream) {
             override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { n ->
-                if (n > 0) { read += n; val pct = (read * 100 / total).toInt(); if (pct != lastPct) { lastPct = pct; progress(read.toFloat() / total); mark(3, Mark.RUN, "Downloading: $pct% of ${total / 1_000_000} MB") } }
+                if (n > 0) { read += n; val pct = (read * 100 / total).toInt(); if (pct != lastPct) { lastPct = pct; progress(read.toFloat() / total); mark(3, Mark.RUN, tr("Downloading: {p}% of {mb} MB", "p" to pct, "mb" to total / 1_000_000)) } }
             }
         }
         var scenes: ByteArray? = null

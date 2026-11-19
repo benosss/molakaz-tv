@@ -65,7 +65,7 @@ class SRow(ctx: Context, private val r: Float = D.u(18f)) : FrameLayout(ctx) {
 /** Home settings: quick-access apps (reorder, add, remove), location, and a door to Android settings. */
 class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onPlace: () -> Unit,
                    private val onPreviews: () -> Unit) : GlassPanel(ctx, 0f, 0f) {
-    private enum class Screen { MAIN, RAIL, ADD, PLACE, REMOTE, SAVER, ABOUT, GOODNIGHT }
+    private enum class Screen { MAIN, RAIL, ADD, PLACE, REMOTE, SAVER, ABOUT, GOODNIGHT, INPUTS, UPDATES, LANGUAGE }
     private var screen = Screen.MAIN
     private val title = ctx.label(30f, "sans-serif-medium", bold = true)
     private val hint = ctx.label(16f).apply { maxLines = 2 }
@@ -94,6 +94,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         Theme.listen { tint() }; tint()
         // More rows than fit: slide the column so the focused row stays on screen.
         body.viewTreeObserver.addOnGlobalFocusChangeListener { _, now -> if (now != null && isOpen) keepVisible(now) }
+        Updater.listen { if (isOpen && screen == Screen.UPDATES) show(Screen.UPDATES) }
     }
 
     private fun keepVisible(v: View) {
@@ -165,6 +166,9 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
             Screen.SAVER -> saverScreen()
             Screen.ABOUT -> aboutScreen()
             Screen.GOODNIGHT -> goodnightScreen()
+            Screen.INPUTS -> inputsScreen()
+            Screen.UPDATES -> updatesScreen()
+            Screen.LANGUAGE -> languageScreen()
         }
         soften(body)
     }
@@ -183,53 +187,142 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         return r
     }
 
-    /** Main page: nine tiles in a 3 x 3 grid, so everything fits on one screen with no scrolling. */
+    /** Main page: twelve tiles in a 4 x 3 grid, so everything fits on one screen with no scrolling. */
     private fun tile(i: Int, top: String, sub: String, icon: android.graphics.drawable.Drawable, click: () -> Unit): Pair<SRow, android.widget.TextView> {
-        val gap = D.ui(16f); val w = (D.ui(1000f) - gap * 2) / 3; val h = D.ui(146f)
+        val gap = D.ui(16f); val w = (D.ui(1000f) - gap * 3) / 4; val h = D.ui(146f)
         val r = SRow(context, D.u(22f))
         r.addView(ImageView(context).apply { setImageDrawable(icon) }, LayoutParams(D.ui(44f), D.ui(44f)).apply { leftMargin = D.ui(22f); topMargin = D.ui(22f) })
-        r.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = top }, LayoutParams(w - D.ui(44f), WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(80f) })
+        r.addView(context.label(17f, "sans-serif-medium", bold = true, color = INK).apply { text = top }, LayoutParams(w - D.ui(36f), WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(80f) })
         val subV = context.label(14.5f, color = INK2).apply { text = sub; maxLines = 1 }
         r.addView(subV, LayoutParams(w - D.ui(44f), WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(108f) })
         r.setOnClickListener { click() }
-        body.addView(r, LayoutParams(w, h).apply { leftMargin = (i % 3) * (w + gap); topMargin = (i / 3) * (h + gap) })
+        body.addView(r, LayoutParams(w, h).apply { leftMargin = (i % 4) * (w + gap); topMargin = (i / 4) * (h + gap) })
         return r to subV
     }
 
     private fun main() {
-        title.text = "Settings"; hint.text = ""
+        title.text = tr("Settings"); hint.text = ""
         val p = Prefs.place
-        tile(0, "Quick access apps", "${Prefs.rail.size} apps on the left", chip(R.drawable.ic_grid, 0xFF2F80ED.toInt())) { show(Screen.RAIL) }.first.requestFocus()
+        tile(0, tr("Quick access apps"), tr("{n} apps on the left", "n" to Prefs.rail.size), chip(R.drawable.ic_grid, 0xFF2F80ED.toInt())) { show(Screen.RAIL) }.first.requestFocus()
         val live = LiveTv.find(context)
-        tile(1, "Live TV", liveSub(live), chip(R.drawable.ic_play, 0xFFE5484D.toInt())) {
+        tile(1, tr("Live TV"), liveSub(live), chip(R.drawable.ic_play, 0xFFE5484D.toInt())) {
             val pkg = LiveTv.find(context) ?: return@tile
             if (pkg !in Prefs.rail) { Prefs.rail = listOf(pkg) + Prefs.rail.filter { it != pkg }; onRail() } else LiveTv.open(context)
             show(Screen.MAIN)
         }
-        tile(2, "Goodnight", goodnightShort(), chip(R.drawable.ic_moon, 0xFF5856D6.toInt())) { show(Screen.GOODNIGHT) }
-        tile(3, "Location", "${p.name}, ${p.country}", chip(R.drawable.ic_pin, 0xFF30B47C.toInt())) { show(Screen.PLACE) }
-        tile(4, "Phone remote", Remote.url()?.removePrefix("http://") ?: "Connect to Wi-Fi first", chip(R.drawable.ic_phone, 0xFF7B61FF.toInt())) { show(Screen.REMOTE) }
-        tile(5, "Background & sound", "Saver " + saverLabel(saverMs()).replace("Never", "off").replace(" minutes", " min").replace(" minute", " min") +
-            " · previews " + (if (Prefs.previews) "on" else "off"), chip(R.drawable.ic_cloud, 0xFF0A84FF.toInt())) { show(Screen.SAVER) }
+        val inputs = Inputs.list(context)
+        tile(2, tr("Inputs"), if (inputs.isEmpty()) tr("None on this box") else inputs.joinToString(" · ") { it.label }, chip(R.drawable.ic_play, 0xFFFF9F0A.toInt())) { show(Screen.INPUTS) }
+        tile(3, tr("Goodnight"), goodnightShort(), chip(R.drawable.ic_moon, 0xFF5856D6.toInt())) { show(Screen.GOODNIGHT) }
+        tile(4, tr("Location"), "${p.name}, ${p.country}", chip(R.drawable.ic_pin, 0xFF30B47C.toInt())) { show(Screen.PLACE) }
+        tile(5, tr("Phone remote"), Remote.url()?.removePrefix("http://") ?: tr("Connect to Wi-Fi first"), chip(R.drawable.ic_phone, 0xFF7B61FF.toInt())) { show(Screen.REMOTE) }
+        tile(6, tr("Background & sound"), tr("Saver {saver} · previews {previews}", "saver" to saverShort(saverMs()), "previews" to (if (Prefs.previews) tr("on") else tr("off"))),
+            chip(R.drawable.ic_cloud, 0xFF0A84FF.toInt())) { show(Screen.SAVER) }
+        tile(7, tr("Language"), I18n.lang.name + if (Prefs.language == null) " · " + tr("like the TV") else "", chip(R.drawable.ic_info, 0xFFFF375F.toInt())) { show(Screen.LANGUAGE) }
         if (OriginalHome.exists(context)) {
-            fun sub() = if (OriginalHome.isOff(context)) "Off · select to bring it back" else "On · select to switch it off"
+            fun sub() = if (OriginalHome.isOff(context)) tr("Off · select to bring it back") else tr("On · select to switch it off")
             lateinit var t: Pair<SRow, android.widget.TextView>
-            t = tile(6, "Original home screen", sub(), chip(R.drawable.ic_grid, 0xFF636366.toInt())) {
+            t = tile(8, tr("Original home screen"), sub(), chip(R.drawable.ic_grid, 0xFF636366.toInt())) {
                 val off = !OriginalHome.isOff(context)
-                t.second.text = if (off) "Switching it off…" else "Bringing it back…"
-                OriginalHome.set(context, off) { ok -> t.second.text = if (ok) sub() else "Allow USB debugging on the TV, then retry" }
+                t.second.text = if (off) tr("Switching it off…") else tr("Bringing it back…")
+                OriginalHome.set(context, off) { ok -> t.second.text = if (ok) sub() else tr("Allow USB debugging on the TV, then retry") }
             }
         }
-        tile(7, "Android settings", "Wi-Fi, display, sound", chip(R.drawable.ic_gear, 0xFF8E8E93.toInt())) {
+        tile(9, tr("Android settings"), tr("Wi-Fi, display, sound"), chip(R.drawable.ic_gear, 0xFF8E8E93.toInt())) {
             context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        tile(8, "About & credits", "Films from Pexels", chip(R.drawable.ic_info, 0xFF05A081.toInt())) { show(Screen.ABOUT) }
+        tile(10, tr("Updates"), updateShort(), chip(R.drawable.ic_check, 0xFF34C759.toInt())) { show(Screen.UPDATES) }
+        tile(11, tr("About & credits"), tr("Version {v}", "v" to Updater.current), chip(R.drawable.ic_info, 0xFF05A081.toInt())) { show(Screen.ABOUT) }
+    }
+
+    private fun saverShort(ms: Int) = when {
+        ms >= Int.MAX_VALUE / 2 -> tr("off"); ms < 60_000 -> tr("{n} s", "n" to ms / 1000)
+        ms < 3600_000 -> tr("{n} min", "n" to ms / 60_000); else -> tr("{n} h", "n" to ms / 3600_000)
+    }
+
+    private fun updateShort() = when (Updater.state) {
+        Updater.State.READY -> tr("Version {v} ready", "v" to (Updater.latest ?: ""))
+        Updater.State.DOWNLOADING, Updater.State.CHECKING -> tr("Checking…")
+        Updater.State.FAILED -> tr("Couldn't check")
+        else -> tr("Up to date")
+    }
+
+    // ---------- inputs ----------
+
+    /** The TV's inputs: OK switches to one, right puts it on the quick-access bar (or takes it off). */
+    private fun inputsScreen() {
+        title.text = tr("Inputs")
+        val list = Inputs.list(context)
+        hint.text = if (list.isEmpty()) tr("This box has no inputs of its own. On a TV, its HDMI ports and the tuner show here.")
+            else tr("Select an input to switch to it. Press right to put it on the quick-access bar.")
+        list.forEachIndexed { i, inp ->
+            val key = Inputs.PREFIX + inp.id
+            fun onBar() = key in Prefs.rail
+            val r = row(i, inp.label, Inputs.typeName(inp.type), chip(R.drawable.ic_play, 0xFFFF9F0A.toInt())) { Inputs.open(context, inp.id) }
+            val pin = SRow(context, D.u(14f)).apply {
+                fill = if (onBar()) 0xFF636366.toInt() else 0xFF2F80ED.toInt()
+                addView(context.label(15f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = if (onBar()) tr("On the bar") else tr("Add to bar"); gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
+                setOnClickListener {
+                    Prefs.rail = if (onBar()) Prefs.rail.filter { it != key } else (Prefs.rail + key).take(Prefs.MAX_RAIL)
+                    onRail(); show(Screen.INPUTS)
+                }
+            }
+            r.addView(pin, LayoutParams(D.ui(140f), D.ui(44f)).apply { gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL; rightMargin = D.ui(16f) })
+            r.setOnKeyListener { _, code, ev -> if (ev.action == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_DPAD_RIGHT) { pin.requestFocus(); true } else false }
+            pin.setOnKeyListener { _, code, ev -> if (ev.action == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_DPAD_LEFT) { r.requestFocus(); true } else false }
+            if (i == 0) r.requestFocus()
+        }
+    }
+
+    // ---------- updates ----------
+
+    /** Where the updates are at: check now, install a downloaded one now (otherwise it installs at a quiet moment). */
+    private fun updatesScreen() {
+        title.text = tr("Updates")
+        hint.text = tr("MoLakaz TV looks for a new version on GitHub twice a day, checks it, and installs it when the TV is on Home and nobody is using it.")
+        val stateRow = row(0, tr("Version {v}", "v" to Updater.current), updateLine(), chip(R.drawable.ic_check, 0xFF34C759.toInt())) {}
+        val check = row(1, tr("Check now"), null, chip(R.drawable.ic_cloud, 0xFF0A84FF.toInt())) { Updater.check(force = true) }
+        if (Updater.state == Updater.State.READY) row(2, tr("Install now"), tr("MoLakaz TV restarts by itself as the new version"), chip(R.drawable.ic_plus, 0xFF30D158.toInt())) { Updater.install() }
+        check.requestFocus()
+        stateRow.isFocusable = false
+    }
+
+    private fun updateLine(): String = when (Updater.state) {
+        Updater.State.IDLE -> tr("Not checked yet")
+        Updater.State.CHECKING -> tr("Looking for updates…")
+        Updater.State.UP_TO_DATE -> tr("Up to date")
+        Updater.State.DOWNLOADING -> tr("Downloading version {v}…", "v" to (Updater.latest ?: ""))
+        Updater.State.READY -> tr("Version {v} is ready to install", "v" to (Updater.latest ?: ""))
+        Updater.State.INSTALLING -> tr("Installing… MoLakaz TV restarts by itself")
+        Updater.State.FAILED -> tr(Updater.message)
+    }
+
+    // ---------- language ----------
+
+    /** Like the TV, or one of the languages MoLakaz TV speaks. Choosing one restarts Home in it. */
+    private fun languageScreen() {
+        title.text = tr("Language")
+        hint.text = tr("Translations other than English and French were made by machine. Corrections are welcome on GitHub.")
+        val options = listOf<Pair<String?, String>>(null to (tr("Like the TV") + " · " + I18n.auto().name)) + I18n.LANGS.map { it.code to it.name }
+        val gap = D.ui(12f); val w = (colW - gap) / 2
+        var focus: View? = null
+        options.forEachIndexed { i, (code, name) ->
+            val r = SRow(context)
+            val line = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(18f), 0) }
+            line.addView(context.label(18f, "sans-serif-medium", bold = true, color = INK).apply { text = name }, LinearLayout.LayoutParams(0, WRAP, 1f))
+            val chosen = Prefs.language == code
+            if (chosen) line.addView(ImageView(context).apply { setImageResource(R.drawable.ic_check); setColorFilter(0xFF30D158.toInt()) }, LinearLayout.LayoutParams(D.ui(24f), D.ui(24f)))
+            r.addView(line, LayoutParams(MATCH, MATCH))
+            r.setOnClickListener { Prefs.language = code; I18n.init(context); (context as? android.app.Activity)?.recreate() }
+            body.addView(r, LayoutParams(w, D.ui(60f)).apply { leftMargin = (i % 2) * (w + gap); topMargin = (i / 2) * (D.ui(60f) + gap) })
+            if (chosen || focus == null && i == 0) focus = r
+        }
+        focus?.requestFocus()
     }
 
     private fun liveSub(pkg: String?) = when {
-        pkg == null -> "No my.t TV app on this box"
-        pkg in Prefs.rail -> "${LiveTv.label(context, pkg)} · on the TV button"
-        else -> "${LiveTv.label(context, pkg)} · select to add"
+        pkg == null -> tr("No my.t TV app on this box")
+        pkg in Prefs.rail -> tr("{app} · on the TV button", "app" to LiveTv.label(context, pkg))
+        else -> tr("{app} · select to add", "app" to LiveTv.label(context, pkg))
     }
 
     // ---------- goodnight ----------
@@ -238,9 +331,9 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, minuteOfDay / 60); set(java.util.Calendar.MINUTE, minuteOfDay % 60) }.time)
 
     private fun goodnightShort() = when {
-        Goodnight.active -> "Sleeps at ${android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(Goodnight.endsAt))}" +
-            if (Goodnight.daily >= 0) " · every night" else ""
-        else -> "Off"
+        Goodnight.active -> tr("Sleeps at {time}", "time" to android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(Goodnight.endsAt))) +
+            if (Goodnight.daily >= 0) " · " + tr("every night") else ""
+        else -> tr("Off")
     }
 
     private val goodnightOptions = listOf(15 to "15 min", 30 to "30 min", 45 to "45 min", 60 to "1 hour", 90 to "1 h 30", 120 to "2 hours")
@@ -248,17 +341,17 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
 
     /** In some minutes (a row of six), or at a bedtime (left and right change it by 15 min), once or every night. */
     private fun goodnightScreen() {
-        title.text = "Goodnight"
-        hint.text = if (Goodnight.active) "On: the TV goes to sleep at ${android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(Goodnight.endsAt))}" +
-            (if (Goodnight.daily >= 0) ", and every night at that time." else ".") else
-            "In the last minute the sound fades and the screen dims, over any app. Then playback pauses and the TV goes to standby."
+        title.text = tr("Goodnight")
+        hint.text = if (Goodnight.active) (if (Goodnight.daily >= 0) tr("On: the TV goes to sleep at {time}, and every night at that time.", "time" to android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(Goodnight.endsAt)))
+            else tr("On: the TV goes to sleep at {time}.", "time" to android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(Goodnight.endsAt)))) else
+            tr("In the last minute the sound fades and the screen dims, over any app. Then playback pauses and the TV goes to standby.")
         if (bedtime < 0) bedtime = Goodnight.daily.takeIf { it >= 0 } ?: (23 * 60)
         val gap = D.ui(12f); val w = (colW - gap * 2) / 3
         var first: View? = null
         goodnightOptions.forEachIndexed { i, (min, label) ->
             val r = SRow(context)
-            r.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = label; gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
-            r.setOnClickListener { Prefs.goodnightDaily = -1; Goodnight.set(min); show(Screen.GOODNIGHT); hint.text = "Goodnight in $label. Change it here or from the phone remote." }
+            r.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr(label); gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
+            r.setOnClickListener { Prefs.goodnightDaily = -1; Goodnight.set(min); show(Screen.GOODNIGHT); hint.text = tr("Goodnight in {time}. Change it here or from the phone remote.", "time" to tr(label)) }
             body.addView(r, LayoutParams(w, rowH).apply { leftMargin = (i % 3) * (w + gap); topMargin = (i / 3) * step })
             if (first == null) first = r
         }
@@ -266,8 +359,8 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         val bed = SRow(context)
         val bedLine = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(22f), 0) }
         val bedCol = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        bedCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = "At a set time" })
-        bedCol.addView(context.label(15f, color = INK2).apply { text = "Left and right to change, OK to set" }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
+        bedCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr("At a set time") })
+        bedCol.addView(context.label(15f, color = INK2).apply { text = tr("Left and right to change, OK to set") }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
         bedLine.addView(bedCol, LinearLayout.LayoutParams(0, WRAP, 1f))
         val timeV = context.label(26f, "sans-serif-medium", color = INK).apply { text = "‹  ${clockText(bedtime)}  ›" }
         bedLine.addView(timeV)
@@ -284,14 +377,14 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         val nightly = Goodnight.daily >= 0
         val every = SRow(context)
         val evLine = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(22f), 0) }
-        evLine.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = "Every night" }, LinearLayout.LayoutParams(0, WRAP, 1f))
-        evLine.addView(context.label(17f, "sans-serif-medium", color = if (nightly) 0xFF30D158.toInt() else INK2).apply { text = if (nightly) "On · ${clockText(Goodnight.daily)}" else "Off" })
+        evLine.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr("Every night") }, LinearLayout.LayoutParams(0, WRAP, 1f))
+        evLine.addView(context.label(17f, "sans-serif-medium", color = if (nightly) 0xFF30D158.toInt() else INK2).apply { text = if (nightly) tr("On · {time}", "time" to clockText(Goodnight.daily)) else tr("Off") })
         every.addView(evLine, LayoutParams(MATCH, MATCH))
         every.setOnClickListener { if (nightly) { Prefs.goodnightDaily = -1; if (!Goodnight.active) Goodnight.cancel() } else Goodnight.setAt(bedtime, true); show(Screen.GOODNIGHT) }
         body.addView(every, LayoutParams(MATCH, rowH).apply { topMargin = 3 * step })
         if (Goodnight.active || nightly) {
             val off = SRow(context).apply { fill = 0xFFE5484D.toInt() }
-            off.addView(context.label(19f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = "Turn off"; gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
+            off.addView(context.label(19f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = tr("Turn off"); gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
             off.setOnClickListener { Goodnight.off(); show(Screen.GOODNIGHT) }
             body.addView(off, LayoutParams(MATCH, rowH).apply { topMargin = 4 * step })
         }
@@ -303,16 +396,16 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     /** Credits for the films (grouped by creator) and the data the home screen uses. */
     private fun aboutScreen() {
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
-        title.text = "About & credits"
-        hint.text = "MoLakaz TV $version, made in Mauritius. Open source (MIT): github.com/benosss/molakaz-tv. The nature films are from Pexels and free to use: thank you to the people who shot them."
+        title.text = tr("About & credits")
+        hint.text = "MoLakaz TV $version. Open source (MIT): github.com/benosss/molakaz-tv. The nature films are from Pexels and free to use: thank you to the people who shot them."
         val credits = Scenes.credits()
         val card = SRow(context, D.u(22f))
         val col = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(D.ui(28f), D.ui(22f), D.ui(28f), D.ui(20f)) }
         val head = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        head.addView(context.label(13f, "sans-serif-medium", bold = true, color = INK2).apply { text = "NATURE FILMS FROM PEXELS"; letterSpacing = 0.14f }, LinearLayout.LayoutParams(0, WRAP, 1f))
-        head.addView(context.label(14f, "sans-serif-medium", color = INK2).apply { text = "pexels.com" })
+        head.addView(context.label(13f, "sans-serif-medium", bold = true, color = INK2).apply { text = tr("NATURE FILMS FROM PEXELS"); letterSpacing = 0.14f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+        head.addView(context.label(14f, "sans-serif-medium", color = INK2).apply { text = tr("pexels.com") })
         col.addView(head)
-        if (credits.isEmpty()) col.addView(context.label(16f, color = INK).apply { text = "Videos by the Pexels community · pexels.com" }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(14f) })
+        if (credits.isEmpty()) col.addView(context.label(16f, color = INK).apply { text = tr("Videos by the Pexels community · pexels.com") }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(14f) })
         // Three columns, filled top to bottom.
         val cols = 3; val rows = (credits.size + cols - 1) / cols
         val grid = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -330,8 +423,8 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         col.addView(grid, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = D.ui(16f) })
         col.addView(View(context).apply { setBackgroundColor(argbA(0.16f, 0xFFFFFF)) }, LinearLayout.LayoutParams(MATCH, D.ui(1f)).apply { topMargin = D.ui(18f) })
         col.addView(context.label(13.5f, color = INK2).apply {
-            text = "Weather by Open-Meteo  ·  Fresh picks from Netflix Top 10, YouTube Charts and Spotify  ·  Location by ipwho.is  ·  Playback by AndroidX Media3\n" +
-                "Ambient sound from Wikimedia Commons: waves by J.D. Savanyu (CC0), rain by kvgarlic (CC0), dawn chorus by Robert EA Harvey (CC BY-SA 4.0)"; maxLines = 3; ellipsize = null
+            text = tr("Weather by Open-Meteo  ·  Fresh picks from Netflix Top 10, YouTube Charts and Spotify  ·  Location by ipwho.is  ·  Playback by AndroidX Media3") + "\n" +
+                tr("Ambient sound from Wikimedia Commons: waves by J.D. Savanyu (CC0), rain by kvgarlic (CC0), dawn chorus by Robert EA Harvey (CC BY-SA 4.0)"); maxLines = 3; ellipsize = null
         }, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = D.ui(12f) })
         card.addView(col, LayoutParams(MATCH, WRAP))
         body.addView(card, LayoutParams(MATCH, WRAP))
@@ -355,15 +448,15 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     private fun appIcon(pkg: String) = runCatching { context.packageManager.getApplicationIcon(pkg) }.getOrNull()
 
     private fun railScreen() {
-        title.text = "Quick access apps"
-        hint.text = "Select an app to pick it up, move it with up and down, then select again to drop it. Press right to remove."
+        title.text = tr("Quick access apps")
+        hint.text = tr("Select an app to pick it up, move it with up and down, then select again to drop it. Press right to remove.")
         rail = Prefs.rail.filter { runCatching { context.packageManager.getPackageInfo(it, 0) }.isSuccess }.toMutableList()
         rail.forEachIndexed { i, pkg ->
             val r = row(i, appLabel(pkg), null, appIcon(pkg)) { pickUp(railRows.indexOf(railRows.first { it.tag == pkg })) }
             r.tag = pkg
             val remove = SRow(context, D.u(14f)).apply {
                 fill = 0xFFE5484D.toInt()
-                addView(context.label(15f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = "Remove"; gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
+                addView(context.label(15f, "sans-serif-medium", bold = true, color = Color.WHITE).apply { text = tr("Remove"); gravity = Gravity.CENTER }, LayoutParams(MATCH, MATCH))
                 setOnClickListener { removeApp(pkg) }
             }
             r.addView(remove, LayoutParams(D.ui(110f), D.ui(44f)).apply { gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL; rightMargin = D.ui(16f) })
@@ -371,7 +464,13 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
             remove.setOnKeyListener { _, code, ev -> if (ev.action == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_DPAD_LEFT) { r.requestFocus(); true } else false }
             railRows += r
         }
-        if (rail.size < Prefs.MAX_RAIL) row(rail.size, "Add an app", "Up to ${Prefs.MAX_RAIL} apps in the quick access bar", chip(R.drawable.ic_plus, 0xFF2F80ED.toInt())) { show(Screen.ADD) }
+        if (rail.size < Prefs.MAX_RAIL) row(rail.size, tr("Add an app"), tr("Up to {n} apps in the quick access bar", "n" to Prefs.MAX_RAIL), chip(R.drawable.ic_plus, 0xFF2F80ED.toInt())) { show(Screen.ADD) }
+        // Glass (each app's mark on frosted glass in its colour) or each app's own icon.
+        fun styleSub() = when (Prefs.iconStyle) { 0 -> tr("Glass: every app as a white mark on dark glass"); 1 -> tr("Tinted: white marks on glass in each app's colour"); else -> tr("Original: each app's own icon") }
+        lateinit var style: SRow
+        style = row(rail.size + if (rail.size < Prefs.MAX_RAIL) 1 else 0, tr("Icon style"), styleSub(), chip(R.drawable.ic_grid, 0xFF5E5CE6.toInt())) {
+            Prefs.iconStyle = (Prefs.iconStyle + 1) % 3; onRail(); show(Screen.RAIL)
+        }
         railRows.firstOrNull()?.requestFocus() ?: body.getChildAt(0)?.requestFocus()
     }
 
@@ -402,7 +501,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     }
 
     private fun addScreen() {
-        title.text = "Add an app"; hint.text = "Pick an app for the quick access bar."
+        title.text = tr("Add an app"); hint.text = tr("Pick an app for the quick access bar.")
         val pm = context.packageManager
         val seen = LinkedHashMap<String, String>()
         for (cat in arrayOf(Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER))
@@ -414,18 +513,18 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         apps.forEachIndexed { i, (pkg, label) ->
             row(i, label, null, appIcon(pkg)) { rail.add(pkg); Prefs.rail = rail; onRail(); show(Screen.RAIL) }.also { if (i == 0) it.requestFocus() }
         }
-        if (apps.isEmpty()) hint.text = "Every installed app is already in the quick access bar."
+        if (apps.isEmpty()) hint.text = tr("Every installed app is already in the quick access bar.")
     }
 
     // ---------- location ----------
 
     private fun placeScreen() {
         val p = Prefs.place
-        title.text = "Location"; hint.text = "Now: ${p.name}, ${p.country}. Weather, sunrise and Netflix picks follow this."
-        val detect = row(0, "Use this box's location", "Detect it automatically from the internet connection") {}
+        title.text = tr("Location"); hint.text = tr("Now: {place}. Weather, sunrise and Netflix picks follow this.", "place" to "${p.name}, ${p.country}")
+        val detect = row(0, tr("Use this box's location"), tr("Detect it automatically from the internet connection")) {}
         detect.setOnClickListener {
-            hint.text = "Finding your location…"
-            Locate.detect { r -> if (r == null) hint.text = "Couldn't detect it. Try searching for your town instead." else choose(r) }
+            hint.text = tr("Finding your location…")
+            Locate.detect { r -> if (r == null) hint.text = tr("Couldn't detect it. Try searching for your town instead.") else choose(r) }
         }
         detect.requestFocus()
         val box = SRow(context)
@@ -467,33 +566,33 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     }.getOrDefault(300_000)
 
     private fun saverLabel(ms: Int) = saverOptions.firstOrNull { it.first == ms }?.second ?: when {
-        ms >= Int.MAX_VALUE / 2 -> "Never"; ms < 60_000 -> "${ms / 1000} seconds"; else -> "${ms / 60_000} minutes"
+        ms >= Int.MAX_VALUE / 2 -> tr("Never"); ms < 60_000 -> tr("{n} seconds", "n" to ms / 1000); else -> tr("{n} minutes", "n" to ms / 60_000)
     }
 
     /** Two columns of choices; the current one carries a tick. Android starts the screensaver after this idle time. */
     private fun saverScreen() {
-        title.text = "Background & sound"
-        hint.text = "The nature screensaver starts after this long with no button presses. Below: ambient sound and card previews."
+        title.text = tr("Background & sound")
+        hint.text = tr("The nature screensaver starts after this long with no button presses. Below: ambient sound and card previews.")
         val cur = saverMs()
         val w = (colW - gap) / 2
         var focus: View? = null
         saverOptions.forEachIndexed { i, (ms, label) ->
             val r = SRow(context)
             val line = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(18f), 0) }
-            line.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = label }, LinearLayout.LayoutParams(0, WRAP, 1f))
+            line.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr(label) }, LinearLayout.LayoutParams(0, WRAP, 1f))
             if (ms == cur) line.addView(ImageView(context).apply { setImageResource(R.drawable.ic_check); setColorFilter(0xFF30D158.toInt()) }, LinearLayout.LayoutParams(D.ui(26f), D.ui(26f)))
             r.addView(line, LayoutParams(MATCH, MATCH))
             r.setOnClickListener { setSaver(ms, label) }
             body.addView(r, LayoutParams(w, rowH).apply { leftMargin = (i % 2) * (w + gap); topMargin = (i / 2) * step })
             if (ms == cur || focus == null && i == 0) focus = r
         }
-        if (saverOptions.none { it.first == cur }) hint.text = "Now: ${saverLabel(cur)}. " + hint.text
+        if (saverOptions.none { it.first == cur }) hint.text = tr("Now: {time}.", "time" to saverLabel(cur)) + " " + hint.text
         // Ambient sound: a quiet nature bed that follows the time of day (and the rain), never over other apps' sound.
         val amb = SRow(context)
         val ambLine = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(22f), 0) }
         val ambCol = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        ambCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = "Ambient sound" })
-        ambCol.addView(context.label(15f, color = INK2).apply { text = "Birds at dawn, the shore by day, waves at sunset, rain when it rains" }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
+        ambCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr("Ambient sound") })
+        ambCol.addView(context.label(15f, color = INK2).apply { text = tr("Birds at dawn, the shore by day, waves at sunset, rain when it rains") }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
         ambLine.addView(ambCol, LinearLayout.LayoutParams(0, WRAP, 1f))
         val ambV = context.label(17f, "sans-serif-medium", color = INK).apply { text = Ambient.label() }
         ambLine.addView(ambV)
@@ -505,8 +604,8 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         val pv = SRow(context)
         val pvLine = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(D.ui(22f), 0, D.ui(22f), 0) }
         val pvCol = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        pvCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = "Previews" })
-        pvCol.addView(context.label(15f, color = INK2).apply { text = "Rest on a card: YouTube videos and trailers play muted, Spotify songs play 30 seconds" }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
+        pvCol.addView(context.label(19f, "sans-serif-medium", bold = true, color = INK).apply { text = tr("Previews") })
+        pvCol.addView(context.label(15f, color = INK2).apply { text = tr("Rest on a card: YouTube videos and trailers play muted, Spotify songs play 30 seconds") }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(3f) })
         pvLine.addView(pvCol, LinearLayout.LayoutParams(0, WRAP, 1f))
         // On → On, music silent → Off → On.
         fun pvText() = when { !Prefs.previews -> "Off"; Prefs.musicSound -> "On"; else -> "Music silent" }
@@ -524,7 +623,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     private fun setSaver(ms: Int, label: String) {
         val cr = context.contentResolver
         if (!android.provider.Settings.System.canWrite(context)) {
-            hint.text = "Allow MoLakaz TV to change system settings on the next screen, then come back."
+            hint.text = tr("Allow MoLakaz TV to change system settings on the next screen, then come back.")
             runCatching {
                 context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:" + context.packageName))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -533,7 +632,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         }
         android.provider.Settings.System.putInt(cr, android.provider.Settings.System.SCREEN_OFF_TIMEOUT, ms)
         show(Screen.SAVER)
-        hint.text = if (ms == Int.MAX_VALUE) "Screensaver is off." else "The screensaver now starts after $label."
+        hint.text = if (ms == Int.MAX_VALUE) tr("Screensaver is off.") else tr("The screensaver now starts after {time}.", "time" to tr(label))
     }
 
     // ---------- phone remote ----------
@@ -541,9 +640,9 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     /** QR code and address, a phone showing the remote, and how to keep it on the Home Screen (iPhone and Android). */
     private fun remoteScreen() {
         val url = Remote.url()
-        title.text = "Phone remote"
-        hint.text = "Use your phone as the remote: same Wi-Fi as the TV, nothing to install."
-        if (url == null) { row(0, "No network", "Connect the TV to Wi-Fi, then come back here.") {}.requestFocus(); return }
+        title.text = tr("Phone remote")
+        hint.text = tr("Use your phone as the remote: same Wi-Fi as the TV, nothing to install.")
+        if (url == null) { row(0, tr("No network"), tr("Connect the TV to Wi-Fi, then come back here.")) {}.requestFocus(); return }
         // Left: the code and the address.
         val card = SRow(context, D.u(24f))
         val qrSize = D.ui(196f)
@@ -551,11 +650,11 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
             setImageBitmap(Remote.qr(url, qrSize)); background = android.graphics.drawable.GradientDrawable().apply { setColor(Color.WHITE); cornerRadius = D.u(16f) }
             val ip = D.ui(10f); setPadding(ip, ip, ip, ip)
         }, LayoutParams(qrSize + D.ui(20f), qrSize + D.ui(20f)).apply { leftMargin = D.ui(20f); topMargin = D.ui(20f) })
-        card.addView(context.label(13f, "sans-serif-medium", bold = true, color = INK2).apply { text = "OR TYPE IN THE BROWSER"; letterSpacing = 0.1f },
+        card.addView(context.label(13f, "sans-serif-medium", bold = true, color = INK2).apply { text = tr("OR TYPE IN THE BROWSER"); letterSpacing = 0.1f },
             LayoutParams(WRAP, WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(20f + 216f + 18f) })
         card.addView(context.label(21f, "sans-serif-medium", bold = true, color = INK).apply { text = url.removePrefix("http://") },
             LayoutParams(WRAP, WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(20f + 216f + 40f) })
-        val status = context.label(14f, color = INK2).apply { text = "Checking key control…"; maxLines = 2; ellipsize = null }
+        val status = context.label(14f, color = INK2).apply { text = tr("Checking key control…"); maxLines = 2; ellipsize = null }
         card.addView(status, LayoutParams(D.ui(216f), WRAP).apply { leftMargin = D.ui(22f); topMargin = D.ui(20f + 216f + 78f) })
         body.addView(card, LayoutParams(D.ui(256f), D.ui(380f)))
         // Middle: what it looks like on a phone.
@@ -564,7 +663,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         val tips = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         fun head(t: String, top: Float) = tips.addView(context.label(13f, "sans-serif-medium", bold = true, color = INK2).apply { text = t; letterSpacing = 0.12f },
             LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = D.ui(top) })
-        fun step(n: Int, t: String) = tips.addView(context.label(17f, color = INK).apply { text = "$n.  $t"; maxLines = 2; ellipsize = null; setLineSpacing(D.u(3f), 1f) },
+        fun step(n: Int, t: String) = tips.addView(context.label(17f, color = INK).apply { text = "$n.  " + tr(t); maxLines = 2; ellipsize = null; setLineSpacing(D.u(3f), 1f) },
             LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = D.ui(10f) })
         head("IPHONE", 4f)
         step(1, "Point the Camera at the code and tap the link")
@@ -574,14 +673,14 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
         step(1, "Point the camera (or Google Lens) at the code")
         step(2, "In Chrome, tap the ⋮ menu at the top right")
         step(3, "Tap Add to Home screen (or Install app)")
-        tips.addView(context.label(15f, color = INK2).apply { text = "It then opens full screen, like an app."; maxLines = 2; ellipsize = null },
+        tips.addView(context.label(15f, color = INK2).apply { text = tr("It then opens full screen, like an app."); maxLines = 2; ellipsize = null },
             LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = D.ui(26f) })
         body.addView(tips, LayoutParams(D.ui(470f), WRAP).apply { leftMargin = D.ui(530f); topMargin = D.ui(6f) })
         card.requestFocus()
         fun check() = Remote.warmUp { ok ->
             status.text = if (ok) "Ready: presses from the phone reach the TV." else "Not ready: if the TV asks \"Allow USB debugging?\", tick Always allow and press OK."
         }
-        card.setOnClickListener { status.text = "Checking key control…"; check() }
+        card.setOnClickListener { status.text = tr("Checking key control…"); check() }
         check()
     }
 

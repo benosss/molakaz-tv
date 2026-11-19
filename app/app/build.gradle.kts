@@ -9,8 +9,8 @@ android {
         applicationId = "com.lagoon.home"
         minSdk = 26
         targetSdk = 34
-        versionCode = 100
-        versionName = "1.0.0"
+        versionCode = 110
+        versionName = "1.1.0"
         ndk { abiFilters += listOf("armeabi-v7a") }
     }
     buildTypes {

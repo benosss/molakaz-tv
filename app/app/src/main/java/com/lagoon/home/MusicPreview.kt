@@ -13,6 +13,10 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.TextUtils
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -181,14 +185,18 @@ object SpotifyTracks {
 }
 
 /**
- * Spotify cards' previews. Rest on one and the screen behind Home becomes the song: its cover, full height on the
- * right, melting into the colour Spotify's own player uses for it, with a slow drift. Then its 30-second clip fades in.
- * Never over music that's already playing (the scene still shows, silent), never with "Music silent" in Settings, and
- * the ambient bed steps aside while a clip plays.
+ * Spotify cards' previews: rest on one and the screen behind Home becomes the song, alive. A glow of the cover's own
+ * colours drifts across the screen, the cover floats on the left and breathes with the bass, the title and artist sit
+ * beside it over bars that dance to the music, and the 30-second clip fades in. Never over music that's already
+ * playing (then it shows, muted, the bars moving gently by themselves), never with "Music silent" in Settings, and the
+ * ambient bed steps aside while a clip plays.
+ *
+ * The colours come from the cover itself (the same picture as the card), never from a colour picked elsewhere.
  *
  * Optimistic, so it feels instant:
- * - The scene is built the moment focus lands, from the best cover at hand: the big one if it's in, else the card's own
- *   picture, swapped for the big one in place when it arrives.
+ * - A scene is only a cover and its colours, built off the main thread the moment focus lands (or ahead, for the cards
+ *   next to it) from the best cover at hand: the big one if it's in, else the card's own picture, swapped for the big
+ *   one in place when it arrives.
  * - The clip player is prepared (from the file fetched ahead, else streamed) before the scene shows, so the sound starts
  *   with the picture. Leaving pauses it; coming back carries on where it was.
  * - Card to card, the next song's scene cross-fades straight over the last, without dipping back to the scenery.
@@ -207,8 +215,11 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         private const val TAG = "MusicPreview"
     }
 
+    /** What a scene needs: the cover, the colours taken from it, and the words. */
+    class SceneData(val cover: Bitmap?, val palette: IntArray, val base: Int, val title: String, val artist: String)
+
     private val h = Handler(Looper.getMainLooper())
-    private val views = List(2) { SceneView(ctx).also { v -> v.alpha = 0f; host.addView(v, FrameLayout.LayoutParams(MATCH, MATCH)) } }
+    private val views = List(2) { MusicScene(ctx).also { v -> v.alpha = 0f; host.addView(v, FrameLayout.LayoutParams(MATCH, MATCH)) } }
     private var front = 0
     var shown = false
         private set
@@ -220,19 +231,25 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
     var enabled = Prefs.previews
         set(v) { field = v; if (!v) focus(null) }
 
-    private val scenes = LinkedHashMap<String, Bitmap>()   // composed, by track, newest last
-    private val sharp = HashSet<String>()                   // composed from the big cover
+    private val scenes = LinkedHashMap<String, SceneData>()   // by track, newest last
+    private val sharp = HashSet<String>()                      // built from the big cover
     private val composer = Executors.newSingleThreadExecutor { r -> Thread(r, "music-scene") }
 
     private var player: ExoPlayer? = null
     private var playerId: String? = null
     private var sounding = false
-    private val left = HashMap<String, Long>()              // where each clip was when focus left it
+    private val left = HashMap<String, Long>()                 // where each clip was when focus left it
     private var vol = 0f
     private var volAnim: ValueAnimator? = null
     private val am = ctx.getSystemService(android.media.AudioManager::class.java)
 
-    init { SpotifyTracks.init(ctx) }
+    init {
+        SpotifyTracks.init(ctx)
+        views.forEach { v ->
+            v.sounding = { sounding }
+            v.clip = { val p = player; if (p != null && playerId == showing && p.duration > 0) (p.currentPosition / 1000f) to (p.duration / 1000f) else null }
+        }
+    }
 
     private fun now() = SystemClock.uptimeMillis()
 
@@ -252,7 +269,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
             if (playerId != id) prepareClip(id, i)
             // The big cover came in after the scene was built from the card's picture: build it again, swap in place.
             if (id !in sharp && SpotifyTracks.artFile(id).exists()) compose(id, src, force = true) {
-                if (showing == id) scenes[id]?.let { views[front].set(it) }
+                if (showing == id) scenes[id]?.let { views[front].data = it }
             }
             if (wanted?.track == id && shown && !sounding) soundIn(id)
         }
@@ -271,20 +288,20 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
 
     private val reveal = Runnable {
         val src = wanted ?: return@Runnable; val id = src.track ?: return@Runnable
-        val b = scenes[id] ?: run { hide(); return@Runnable }
+        val d = scenes[id] ?: run { hide(); return@Runnable }
         val crossFade = shown && showing != id
         if (shown && showing == id) { soundIn(id); return@Runnable }
         val next = if (crossFade) 1 - front else front
         val v = views[next]
-        v.set(b); v.bringToFront()
+        v.data = d; v.bringToFront()
         if (crossFade) views[front].let { old ->
             old.animate().cancel()
-            old.animate().alpha(0f).setDuration(FADE_IN).setInterpolator(Ease.inOut).withEndAction { old.stopDrift() }.start()
+            old.animate().alpha(0f).setDuration(FADE_IN).setInterpolator(Ease.inOut).withEndAction { old.running = false }.start()
         }
         front = next; showing = id
+        v.running = true
         v.animate().cancel()
         v.animate().alpha(1f).setDuration(if (Motion.on) FADE_IN else 0).setInterpolator(Ease.out).start()
-        v.startDrift()
         if (!shown) { shown = true; h.removeCallbacks(inactive); onActive(true); onShown(true) }
         Log.i(TAG, "showing $id ${now() - focusAt} ms after focus" + if (id in sharp) "" else " (card cover for now)")
         soundIn(id)
@@ -297,7 +314,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         shown = false; showing = null
         views.forEach { v ->
             v.animate().cancel()
-            v.animate().alpha(0f).setDuration(if (Motion.on) FADE_OUT else 0).setInterpolator(Ease.exit).withEndAction { v.stopDrift() }.start()
+            v.animate().alpha(0f).setDuration(if (Motion.on) FADE_OUT else 0).setInterpolator(Ease.exit).withEndAction { v.running = false }.start()
         }
         onShown(false)
         h.postDelayed(inactive, FADE_OUT + 120)
@@ -308,8 +325,8 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
     fun stop() {
         h.removeCallbacks(reveal); wanted = null
         volAnim?.cancel(); player?.let { p -> playerId?.let { left[it] = p.currentPosition }; p.pause(); p.volume = 0f }
-        vol = 0f; sounding = false; h.removeCallbacks(tick); Ambient.hold(false)
-        if (shown) { shown = false; showing = null; views.forEach { it.animate().cancel(); it.alpha = 0f; it.stopDrift() }; onShown(false); onActive(false) }
+        vol = 0f; sounding = false; h.removeCallbacks(tick); Ambient.hold(false); AudioViz.stop("music")
+        if (shown) { shown = false; showing = null; views.forEach { it.animate().cancel(); it.alpha = 0f; it.running = false }; onShown(false); onActive(false) }
         h.removeCallbacks(release); h.postDelayed(release, 120_000)
     }
 
@@ -318,27 +335,38 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
     /** Memory goes back while another app is in front: the player and the scenes are rebuilt when needed. */
     private val release = Runnable {
         player?.release(); player = null; playerId = null
-        scenes.clear(); sharp.clear(); views.forEach { it.set(null) }
+        scenes.clear(); sharp.clear(); views.forEach { it.data = null }
     }
 
     // ---------- the scene ----------
 
     private fun compose(id: String, src: PreviewSrc, force: Boolean = false, done: () -> Unit) {
         if (!force && scenes.containsKey(id)) { done(); return }
-        val color = SpotifyTracks.cached(id)?.color ?: 0
         composer.execute {
             val t0 = SystemClock.uptimeMillis()
             val big = SpotifyTracks.artFile(id).takeIf { it.length() > 0 }?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
-            val b = runCatching { SceneView.compose(big ?: src.cover, color, src.tint) }.getOrNull()
-            Log.i(TAG, "scene for $id built in ${SystemClock.uptimeMillis() - t0} ms" + if (big == null) " (card cover)" else "")
+            val cover = big ?: src.cover
+            val pal = runCatching { MusicScene.palette(cover, src.tint) }.getOrNull()
+            val (title, artist) = credits(src.title.orEmpty(), src.sub.orEmpty())
+            val d = pal?.let { SceneData(cover, it.first, it.second, title, artist) }
+            Log.i(TAG, "scene for $id ready in ${SystemClock.uptimeMillis() - t0} ms" + if (big == null) " (card cover)" else "")
             h.post {
-                if (b == null) { done(); return@post }     // reveal finds no scene and hides the last one
-                scenes.remove(id); scenes[id] = b
+                if (d == null) { done(); return@post }     // reveal finds no scene and hides the last one
+                scenes.remove(id); scenes[id] = d
                 if (big != null) sharp += id else sharp -= id
                 while (scenes.size > SCENES) { val k = scenes.keys.first(); if (k == showing) break; scenes.remove(k); sharp -= k }
                 done()
             }
         }
+    }
+
+    /** "Song (feat. A, B) [From X]" by "Artist": the song's name alone, and the guests with the artist. */
+    private fun credits(title: String, artist: String): Pair<String, String> {
+        val feat = Regex("""\s*[(\[]\s*(?:feat\.?|ft\.?|with)\s+([^)\]]+)[)\]]""", RegexOption.IGNORE_CASE).find(title)
+        var name = if (feat != null) title.removeRange(feat.range) else title
+        name = name.replace(Regex("""\s*\[[^\]]*]"""), "").trim().ifBlank { title }
+        val by = if (feat != null) "$artist  ·  with ${feat.groupValues[1].trim()}".trimStart(' ', '·') else artist
+        return name to by
     }
 
     // ---------- the clip ----------
@@ -351,7 +379,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_ENDED) {
                     playerId?.let { left[it] = 0L }
-                    sounding = false; h.removeCallbacks(tick); Ambient.hold(false)
+                    sounding = false; h.removeCallbacks(tick); Ambient.hold(false); AudioViz.stop("music")
                     wanted?.let { w -> if (w.track == playerId) onProgress(w, 1f, 1f) }
                 }
             }
@@ -384,9 +412,11 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         if (p.playbackState == Player.STATE_ENDED) p.seekTo(0L)
         sounding = true
         Ambient.hold(true)
+        AudioViz.start(ctx, "music")
         p.play()
         fadeVolume(1f, SOUND_IN) {}
         h.removeCallbacks(tick); h.post(tick)
+        if (Apps.showcase) p.volume = 0f   // screenshots: the scene as it plays, without sound in the room
     }
 
     private fun soundOut() {
@@ -397,7 +427,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         val id = playerId
         fadeVolume(0f, SOUND_OUT) {
             if (!sounding) { p.pause(); id?.let { left[it] = p.currentPosition.let { pos -> if (p.duration > 0 && pos > p.duration - 1500) 0L else pos } } }
-            if (!sounding) Ambient.hold(false)
+            if (!sounding) { Ambient.hold(false); AudioViz.stop("music") }
         }
     }
 
@@ -406,7 +436,7 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
         val from = vol
         volAnim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = ms
-            addUpdateListener { vol = from + (to - from) * it.animatedFraction; player?.volume = VOLUME * vol * vol }
+            addUpdateListener { vol = from + (to - from) * it.animatedFraction; player?.volume = if (Apps.showcase) 0f else VOLUME * vol * vol }
             var cancelled = false
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationCancel(a: android.animation.Animator) { cancelled = true }
@@ -424,101 +454,197 @@ class MusicPreview(private val ctx: Context, host: FrameLayout,
             if (sounding) h.postDelayed(this, 250)
         }
     }
+}
 
-    /** One full-screen picture, drawn as a single bitmap (the GPU on these boxes has little to spare). */
-    private class SceneView(ctx: Context) : View(ctx) {
-        private var b: Bitmap? = null
-        private val p = Paint(Paint.FILTER_BITMAP_FLAG)
-        private val dst = Rect()
-        private var drift: ValueAnimator? = null
+/**
+ * The song's scene, redrawn ~30 times a second while it shows. Everything is a handful of textured quads (a colour, four
+ * tinted glow sprites, the cover, a few words and bars), cheap enough for the GPUs in TV boxes.
+ */
+private class MusicScene(ctx: Context) : View(ctx) {
+    var data: MusicPreview.SceneData? = null
+        set(v) { if (field !== v) { field = v; cover = null; title = null; invalidate() } }
+    var running = false
+        set(v) { field = v; if (v) { t0 = SystemClock.uptimeMillis(); invalidate() } }
+    var sounding: () -> Boolean = { false }
+    var clip: () -> Pair<Float, Float>? = { null }
 
-        fun set(bm: Bitmap?) { if (b !== bm) { b = bm; invalidate() } }
-        override fun hasOverlappingRendering() = false   // one draw: fades need no offscreen copy
-        override fun onDraw(c: Canvas) { val bm = b ?: return; dst.set(0, 0, width, height); c.drawBitmap(bm, null, dst, p) }
+    private var t0 = 0L
+    private val sprite = glowSprite()
+    private val sp = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val coverP = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val rimP = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val barP = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val shadowP = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val label = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD); letterSpacing = 0.14f }
+    private val titleP = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD) }
+    private val artistP = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL) }
+    private val timeP = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
+    private var cover: android.graphics.BitmapShader? = null
+    private var title: StaticLayout? = null
+    private var shadow: Bitmap? = null
+    private val r = RectF(); private val m = android.graphics.Matrix()
+    private val bars = FloatArray(BARS)
+    private var bass = 0f
 
-        /** A slow push-in towards the cover, over about the length of the clip. */
-        fun startDrift() {
-            drift?.cancel(); scaleX = 1f; scaleY = 1f
-            if (!Motion.on) return
-            pivotX = width.toFloat(); pivotY = height * 0.42f
-            drift = ValueAnimator.ofFloat(1f, 1.05f).apply {
-                duration = 32_000; interpolator = LinearInterpolator()
-                addUpdateListener { val s = it.animatedValue as Float; scaleX = s; scaleY = s }
-                start()
-            }
+    override fun hasOverlappingRendering() = false
+
+    override fun onDraw(c: Canvas) {
+        val d = data ?: return
+        val w = width.toFloat(); val hh = height.toFloat(); val u = D.s
+        val t = (SystemClock.uptimeMillis() - t0) / 1000f
+        val live = sounding() && AudioViz.live
+        // The music: the box's own output when the clip plays, else a gentle made-up motion.
+        var b = 0f
+        for (i in 0 until BARS) {
+            val band = i * (AudioViz.BANDS - 1f) / (BARS - 1f); val lo = band.toInt(); val f = band - lo
+            val raw = if (live) AudioViz.level(lo) * (1 - f) + AudioViz.level((lo + 1).coerceAtMost(AudioViz.BANDS - 1)) * f
+                else 0.34f + 0.26f * kotlin.math.sin(t * (2.3f + i * 0.37f) + i * 0.9f) * kotlin.math.sin(t * 0.83f + i * 1.7f)
+            bars[i] += (raw.coerceIn(0f, 1f) - bars[i]) * (if (raw > bars[i]) 0.55f else 0.18f)
+            if (i < 4) b += bars[i]
         }
-        fun stopDrift() { drift?.cancel(); drift = null; scaleX = 1f; scaleY = 1f }
+        bass += (b / 4f - bass) * 0.3f
 
-        companion object {
-            private const val W = 1280; private const val H = 720
+        // 1. The cover's darkest colour, then its colours as four soft glows drifting on slow, different paths.
+        c.drawColor(d.base)
+        for (k in 0 until 4) {
+            val px = PATHS[k]
+            val cx = w * (0.5f + 0.42f * kotlin.math.sin(t * px[0] + px[2]))
+            val cy = hh * (0.48f + 0.34f * kotlin.math.cos(t * px[1] + px[3]))
+            val rad = hh * (0.78f + 0.12f * kotlin.math.sin(t * 0.21f + k)) * (1f + 0.07f * bass)
+            sp.color = d.palette[k]; sp.alpha = (if (k == 0) 200 else 165)
+            r.set(cx - rad, cy - rad, cx + rad, cy + rad); c.drawBitmap(sprite, null, r, sp)
+        }
 
-            /**
-             * The song's colour fills the screen (Spotify's own, else the cover's, toned so white text reads on it), with a
-             * soft blur of the cover's light on it; the cover sits full height on the right, its left side melting away.
-             */
-            fun compose(art: Bitmap?, spotifyColor: Int, tint: IntArray?): Bitmap {
-                val out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888); val c = Canvas(out)
-                val base = tone(when { spotifyColor != 0 -> spotifyColor; art != null -> average(art); else -> tint?.get(0) ?: 0xFF14532D.toInt() })
-                c.drawColor(base)
-                if (art == null) {
-                    tint?.let { t -> c.drawPaint(Paint().apply { shader = LinearGradient(0f, 0f, W.toFloat(), H.toFloat(), t[0], t[1], Shader.TileMode.CLAMP) }) }
-                    return out
-                }
-                // The cover's light, blurred to nothing but colour, over the whole screen.
-                c.drawBitmap(blurred(art), null, Rect(-W / 4, -H / 3, W, H + H / 3), Paint(Paint.FILTER_BITMAP_FLAG).apply { alpha = 120 })
-                // The cover, full height on the right; its left 60% fades out over what's behind (no seam).
-                val s = H.toFloat(); val x0 = W - s
-                val sc = c.saveLayer(x0, 0f, W.toFloat(), s, null)
-                c.drawBitmap(art, null, RectF(x0, 0f, W.toFloat(), s), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
-                c.drawRect(x0, 0f, W.toFloat(), s, Paint().apply {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-                    shader = LinearGradient(x0, 0f, x0 + s * 0.6f, 0f, intArrayOf(0x00000000, 0x59000000, 0xD9000000.toInt(), 0xFF000000.toInt()),
-                        floatArrayOf(0f, 0.35f, 0.75f, 1f), Shader.TileMode.CLAMP)
-                })
-                c.restoreToCount(sc)
-                return out
+        // 2. The cover, floating, breathing with the bass, on a glow of its own colour.
+        val cs = 290f * u; val cxL = 196f * u; val cyT = 158f * u
+        val float = 4f * u * kotlin.math.sin(t * 1.05f)
+        val scale = 1f + 0.035f * bass
+        val ccx = cxL + cs / 2; val ccy = cyT + cs / 2 + float
+        sp.color = d.palette[0]; sp.alpha = (90 + 120 * bass).toInt().coerceAtMost(255)
+        val gr = cs * (0.95f + 0.15f * bass); r.set(ccx - gr, ccy - gr, ccx + gr, ccy + gr); c.drawBitmap(sprite, null, r, sp)
+        val sh = shadow ?: shadowFor(cs).also { shadow = it }
+        shadowP.alpha = 150
+        c.save(); c.scale(scale, scale, ccx, ccy)
+        c.drawBitmap(sh, ccx - sh.width / 2f, ccy - sh.height / 2f + 12f * u, shadowP)
+        r.set(ccx - cs / 2, ccy - cs / 2, ccx + cs / 2, ccy + cs / 2)
+        val bm = d.cover
+        if (bm != null) {
+            if (cover == null) cover = android.graphics.BitmapShader(bm, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+            val s = maxOf(cs / bm.width, cs / bm.height)
+            m.setScale(s, s); m.postTranslate(r.left + (cs - bm.width * s) / 2, r.top + (cs - bm.height * s) / 2)
+            cover!!.setLocalMatrix(m); coverP.shader = cover
+        } else { coverP.shader = null; coverP.color = d.palette[1] }
+        c.drawRoundRect(r, 18f * u, 18f * u, coverP)
+        rimP.strokeWidth = 1.2f * u; rimP.color = argbA(0.22f, 0xFFFFFF)
+        c.drawRoundRect(r, 18f * u, 18f * u, rimP)
+        c.restore()
+
+        // 3. The words, and the bars dancing under them.
+        val x = 530f * u
+        label.textSize = 13f * u; label.color = argbA(0.86f, 0xFFFFFF)
+        c.drawText("SPOTIFY  ·  " + tr("PREVIEW") + if (sounding()) "" else "  ·  " + tr("MUTED"), x, 236f * u, label)
+        val tl = title ?: layoutTitle(d.title, 640f * u, u).also { title = it }
+        c.save(); c.translate(x, 248f * u); tl.draw(c); c.restore()
+        var y = 248f * u + tl.height + 8f * u
+        artistP.textSize = 23f * u; artistP.color = argbA(0.86f, 0xFFFFFF)
+        c.drawText(TextUtils.ellipsize(d.artist, artistP, 640f * u, TextUtils.TruncateAt.END).toString(), x, y + artistP.textSize, artistP)
+        y += artistP.textSize + 26f * u
+        val bw = 7f * u; val gap = 4.5f * u; val maxH = 46f * u
+        barP.color = argbA(0.92f, 0xFFFFFF)
+        for (i in 0 until BARS) {
+            val bh = (5f * u + bars[i] * maxH).coerceAtMost(maxH)
+            val bx = x + i * (bw + gap)
+            r.set(bx, y + maxH - bh, bx + bw, y + maxH); c.drawRoundRect(r, bw / 2, bw / 2, barP)
+        }
+        // 4. Where the 30 seconds are.
+        if (sounding()) clip()?.let { (pos, dur) ->
+            val py = y + maxH + 18f * u; val pw = BARS * (bw + gap) - gap
+            barP.color = argbA(0.28f, 0xFFFFFF); r.set(x, py, x + pw, py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
+            barP.color = Color.WHITE; r.set(x, py, x + pw * (pos / dur).coerceIn(0f, 1f), py + 3f * u); c.drawRoundRect(r, 2f * u, 2f * u, barP)
+            timeP.textSize = 13f * u; timeP.color = argbA(0.8f, 0xFFFFFF)
+            c.drawText("0:%02d".format(pos.toInt().coerceIn(0, 59)), x + pw + 12f * u, py + 5f * u, timeP)
+        }
+        if (running && isAttachedToWindow && alpha > 0f) postInvalidateDelayed(33)
+    }
+
+    private fun layoutTitle(s: String, width: Float, u: Float): StaticLayout {
+        titleP.textSize = 44f * u
+        return StaticLayout.Builder.obtain(s, 0, s.length, titleP, width.toInt()).setMaxLines(2).setEllipsize(TextUtils.TruncateAt.END)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 0.98f).setIncludePad(false).build()
+    }
+
+    private fun shadowFor(cs: Float): Bitmap {
+        val pad = (40f * D.s).toInt(); val size = (cs + pad * 2).toInt()
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8)
+        Canvas(bmp).drawRoundRect(RectF(pad.toFloat(), pad.toFloat(), pad + cs, pad + cs), 18f * D.s, 18f * D.s,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { maskFilter = android.graphics.BlurMaskFilter(22f * D.s, android.graphics.BlurMaskFilter.Blur.NORMAL) })
+        return bmp
+    }
+
+    companion object {
+        const val BARS = 24
+        /** Speeds and phases of the four glows (x, y): slow and never in step, so the picture never repeats visibly. */
+        private val PATHS = arrayOf(floatArrayOf(0.23f, 0.17f, 0f, 1f), floatArrayOf(0.13f, 0.29f, 2.1f, 0.3f),
+            floatArrayOf(0.31f, 0.11f, 4.2f, 2.6f), floatArrayOf(0.09f, 0.21f, 1.3f, 4.4f))
+
+        /** A soft round glow: white in the middle fading to nothing, tinted by the paint's colour when drawn. */
+        fun glowSprite(): Bitmap {
+            val n = 128; val bmp = Bitmap.createBitmap(n, n, Bitmap.Config.ALPHA_8)
+            val px = ByteArray(n * n)
+            for (y in 0 until n) for (x in 0 until n) {
+                val dx = (x + 0.5f - n / 2f) / (n / 2f); val dy = (y + 0.5f - n / 2f) / (n / 2f)
+                val d = kotlin.math.sqrt(dx * dx + dy * dy).coerceAtMost(1f)
+                val a = (1f - d * d).let { it * it }          // smooth, no visible edge
+                px[y * n + x] = (a * 255f).toInt().toByte()
             }
+            bmp.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(px))
+            return bmp
+        }
 
-            /** Dark and rich enough for white text, whatever the source colour. */
-            private fun tone(c: Int): Int {
-                val hsv = FloatArray(3); Color.colorToHSV(c, hsv)
-                hsv[1] = hsv[1].coerceIn(0.25f, 0.9f); hsv[2] = hsv[2].coerceIn(0.2f, 0.42f)
-                return Color.HSVToColor(hsv)
+        /**
+         * The cover's colours: four (strongest and most present first) for the glows, and a dark base made from the main
+         * one, so the scene always matches the card. Grey covers get soft greys with a hint of their tint.
+         */
+        fun palette(cover: Bitmap?, tint: IntArray?): Pair<IntArray, Int> {
+            if (cover == null) {
+                val a = tint?.getOrNull(0) ?: 0xFF14532D.toInt(); val b = tint?.getOrNull(1) ?: 0xFF05140B.toInt()
+                return intArrayOf(a, mix(a, Color.WHITE, 0.25f), b, a) to tone(a, 0.16f, 0.22f)
             }
-
-            /** Area average by halving (a single big downscale only samples a few pixels). */
-            private fun shrink(b: Bitmap, to: Int): Bitmap {
-                var x = b
-                while (x.width / 2 >= to && x.height / 2 >= to) x = Bitmap.createScaledBitmap(x, x.width / 2, x.height / 2, true)
-                return Bitmap.createScaledBitmap(x, to, to, true)
+            var x: Bitmap = cover
+            while (x.width / 2 >= 24 && x.height / 2 >= 24) x = Bitmap.createScaledBitmap(x, x.width / 2, x.height / 2, true)
+            val small = Bitmap.createScaledBitmap(x, 24, 24, true)
+            val px = IntArray(24 * 24); small.getPixels(px, 0, 24, 0, 0, 24, 24)
+            // Buckets by hue (12) for colourful pixels, one for greys; weighted by how vivid and how frequent.
+            val sumR = FloatArray(13); val sumG = FloatArray(13); val sumB = FloatArray(13); val wt = FloatArray(13)
+            val hsv = FloatArray(3)
+            for (c in px) {
+                Color.colorToHSV(c, hsv)
+                val vivid = hsv[1] * hsv[2]
+                val k = if (hsv[1] < 0.18f || hsv[2] < 0.12f) 12 else ((hsv[0] / 30f).toInt() % 12)
+                val wgt = if (k == 12) 0.25f + 0.25f * hsv[2] else 0.4f + vivid * 1.6f
+                sumR[k] += Color.red(c) * wgt; sumG[k] += Color.green(c) * wgt; sumB[k] += Color.blue(c) * wgt; wt[k] += wgt
             }
+            val order = (0 until 12).filter { wt[it] > 0.5f }.sortedByDescending { wt[it] }
+            fun avg(k: Int) = Color.rgb((sumR[k] / wt[k]).toInt(), (sumG[k] / wt[k]).toInt(), (sumB[k] / wt[k]).toInt())
+            val colours = order.take(4).map { glow(avg(it)) }.toMutableList()
+            if (colours.isEmpty()) colours += glow(if (wt[12] > 0f) avg(12) else 0xFF3A3A3C.toInt())
+            // Fewer than four colours (a cover with one or two): lighter and darker shades of the last one fill in.
+            while (colours.size < 4) colours += mix(colours.last(), if (colours.size % 2 == 0) Color.WHITE else Color.BLACK, 0.25f)
+            return colours.toIntArray() to tone(colours[0], 0.14f, 0.20f)
+        }
 
-            private fun average(b: Bitmap) = shrink(b, 1).getPixel(0, 0)
+        /** A glow colour: rich but not neon, bright enough to light the dark base. */
+        private fun glow(c: Int): Int {
+            val hsv = FloatArray(3); Color.colorToHSV(c, hsv)
+            hsv[1] = (hsv[1] * 1.15f).coerceIn(0f, 0.85f); hsv[2] = hsv[2].coerceIn(0.42f, 0.86f)
+            return Color.HSVToColor(hsv)
+        }
 
-            /** A tiny, well-blurred copy: drawn stretched to the whole screen it's just soft colour. */
-            private fun blurred(b: Bitmap): Bitmap {
-                val n = 48
-                val small = Bitmap.createScaledBitmap(shrink(b, 12), n, n, true)
-                val px = IntArray(n * n); small.getPixels(px, 0, n, 0, 0, n, n)
-                repeat(3) { boxBlur(px, n, 3) }
-                return Bitmap.createBitmap(px, n, n, Bitmap.Config.ARGB_8888)
-            }
-
-            private fun boxBlur(px: IntArray, n: Int, r: Int) {
-                val tmp = IntArray(px.size)
-                for (pass in 0..1) {
-                    val src = if (pass == 0) px else tmp; val dst = if (pass == 0) tmp else px
-                    for (y in 0 until n) for (x in 0 until n) {
-                        var rr = 0; var gg = 0; var bb = 0; var k = 0
-                        for (d in -r..r) {
-                            val xx = if (pass == 0) (x + d).coerceIn(0, n - 1) else x
-                            val yy = if (pass == 0) y else (y + d).coerceIn(0, n - 1)
-                            val c = src[yy * n + xx]; rr += (c shr 16) and 255; gg += (c shr 8) and 255; bb += c and 255; k++
-                        }
-                        dst[y * n + x] = (0xFF shl 24) or ((rr / k) shl 16) or ((gg / k) shl 8) or (bb / k)
-                    }
-                }
-            }
+        /** The base: the main colour, deep and dark. */
+        private fun tone(c: Int, vMin: Float, vMax: Float): Int {
+            val hsv = FloatArray(3); Color.colorToHSV(c, hsv)
+            hsv[1] = hsv[1].coerceIn(0f, 0.8f); hsv[2] = (hsv[2] * 0.35f).coerceIn(vMin, vMax)
+            return Color.HSVToColor(hsv)
         }
     }
 }

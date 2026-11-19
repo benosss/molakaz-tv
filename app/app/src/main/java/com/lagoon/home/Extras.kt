@@ -75,6 +75,8 @@ object OriginalHome {
         thread(name = "orig-home") {
             val cmd = pkgs.joinToString("; ") { if (off) "pm disable-user --user 0 $it" else "pm enable $it" }
             val ok = Remote.shell(cmd) != null
+            // MoLakaz TV chosen again after the safety net handed the TV back: the crash count starts afresh.
+            if (ok && off) Safety.reset()
             mainH.post { done(ok && isOff(ctx) == off) }
         }
     }
@@ -206,7 +208,7 @@ object Goodnight {
         private val wm = ctx.getSystemService(WindowManager::class.java)
         private var root: FrameLayout? = null
         private val title = ctx.label(30f, "sans-serif-light", shadow = true)
-        private val sub = ctx.label(17f, shadow = true).apply { alpha = 0.8f; text = "Press any button to keep watching" }
+        private val sub = ctx.label(17f, shadow = true).apply { alpha = 0.8f; text = tr("Press any button to keep watching") }
 
         fun show() {
             if (!android.provider.Settings.canDrawOverlays(ctx)) return
@@ -234,7 +236,7 @@ object Goodnight {
             r.setBackgroundColor(argbA((0.25f + 0.70f * t).coerceAtMost(0.95f), 0x000000))
             if (r.alpha < 1f) r.animate().alpha(1f).setDuration(600).start()
             val s = (leftMs / 1000).toInt()
-            title.text = "Goodnight in 0:%02d".format(s.coerceAtLeast(0))
+            title.text = tr("Goodnight in {time}", "time" to "0:%02d".format(s.coerceAtLeast(0)))
         }
 
         fun dismiss() {

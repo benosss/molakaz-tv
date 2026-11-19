@@ -27,7 +27,8 @@ import kotlin.concurrent.thread
  * video wins over it.
  */
 class PreviewSrc(val videoId: String? = null, val startSec: Int = 0, val trailerOf: String? = null, val since: Long = 0L,
-                 val track: String? = null, val cover: android.graphics.Bitmap? = null, val tint: IntArray? = null)
+                 val track: String? = null, val cover: android.graphics.Bitmap? = null, val tint: IntArray? = null,
+                 val title: String? = null, val sub: String? = null)
 
 /** The dimming that keeps Home's text readable over a preview; lives in Home's own layer (see [Preview]). */
 fun previewScrim(ctx: Context) = View(ctx).apply {
