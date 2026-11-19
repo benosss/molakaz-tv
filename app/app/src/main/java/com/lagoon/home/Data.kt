@@ -125,8 +125,10 @@ object MediaHub {
     fun controller(pkg: String): MediaController? = ctrls.firstOrNull { it.packageName == pkg }
 
     /**
-     * Once [pkg] has a session (and, with a [title], once it has loaded that song), run [then] with it. Checked four
-     * times a second; gives up after [ms]. For commands that have to wait for an app to start or a song to load.
+     * Once [pkg] has a session (and, with a [title], once that song is actually playing), run [then] with it. Checked
+     * four times a second; gives up after [ms]. For commands that have to wait for an app to start or a song to load:
+     * Spotify ignores a seek sent while the song is still loading (it reports the title before it plays), so with a
+     * title it waits for the playing state, then half a second more.
      */
     fun whenReady(pkg: String, title: String?, ms: Long, then: (MediaController) -> Unit) {
         val until = SystemClock.uptimeMillis() + ms
@@ -134,7 +136,9 @@ object MediaHub {
             override fun run() {
                 val c = controller(pkg)
                 val t = c?.metadata?.let { str(it, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE) }
-                if (c != null && (title == null || t.equals(title, true))) { then(c); return }
+                val playing = c?.playbackState?.state == PlaybackState.STATE_PLAYING
+                if (c != null && title == null) { then(c); return }
+                if (c != null && t.equals(title, true) && playing) { mainH.postDelayed({ then(c) }, 500); return }
                 if (SystemClock.uptimeMillis() < until) mainH.postDelayed(this, 250)
             }
         }
@@ -210,6 +214,9 @@ object MediaHub {
         }
         mainH.removeCallbacks(settle)
         if (n != null && !n.ghost) mainH.removeCallbacks(expire)
+        // The app moved on to another song: keep where the last one got to. Music apps report their position only now
+        // and then (Spotify about 30 s into a song, and on pause), so its last report is often minutes old by now.
+        if (prev != null && !prev.ghost && n != null && prev.pkg == n.pkg && prev.title != n.title) ContinueStore.record(prev.paused())
         now = n
         val tag = "${n?.pkg}|${n?.title}|${n?.playing}|${n?.ghost}"
         if (tag != lastLogged) { lastLogged = tag; android.util.Log.i("MediaHub", "now $tag art=${n?.art != null}") }
@@ -272,6 +279,7 @@ object ContinueStore {
         val link = deepLink(n) ?: prev?.link
         // Apps report 0 when a video ends or the session resets: keep the last real position.
         val pos = n.position().let { p -> if (p < 1000 && prev != null && prev.pos > 5000) prev.pos else p }
+            .let { p -> if (n.dur > 0) p.coerceAtMost(n.dur) else p }
         val orderChanged = items.firstOrNull()?.key != key
         // Artwork and resume links often arrive a moment after the title: save and redraw as soon as they do.
         val detailChanged = (artPath != null && artPath != prev?.art) || (link != null && prev?.link == null)
