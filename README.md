@@ -68,8 +68,8 @@ Netflix titles play their trailer, found and pre-loaded for you.
 <td valign="top">
 <img src="docs/assets/glass.jpg" alt="The quick-access bar with Spotify, Netflix, YouTube, Prime Video, Apple TV and Plex as tinted glass icons">
 <h3>Glass icons</h3>
-Every app on the bar becomes a mark on frosted glass in its own colour, so Spotify, Netflix, YouTube and the rest look
-like one family. Prefer the originals? One switch in Settings.
+Every app on the bar becomes a crisp white mark on dark glass, so Spotify, Netflix, YouTube and the rest look like one
+family. Prefer colour? Tinted glass in each app's colour, or the original icons, one switch away in Settings.
 </td>
 </tr>
 <tr>
@@ -194,8 +194,9 @@ A single Kotlin app with no UI framework: every view is drawn by hand, sized for
   API for songs known only by name. The colours are taken from the cover itself, the scene reacts to the music through
   Android's audio visualiser, and the neighbouring cards' scenes are built ahead so the screen changes the moment focus
   lands.
-- **Glass icons from any app.** Each icon's mark is separated from its background (taken from the icon's edges) and
-  redrawn in white on frosted glass tinted with the app's own colour.
+- **Glass icons from any app.** Each icon's mark is separated from its background (taken from just inside the icon's
+  edge, so rims and frames stay out), read at 256 px and redrawn in white on glass at twice the size, then scaled down,
+  so edges stay crisp on a big screen.
 - **The TV's own adb, from inside the app** ([dadb](https://github.com/mobile-dev-inc/dadb) on `127.0.0.1:5555`): the
   first-run set-up, silent verified updates, the safety net and the phone remote's key helper all go through it.
 
