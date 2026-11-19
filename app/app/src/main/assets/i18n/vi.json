@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Bản tải về không khớp với mã kiểm tra",
  "The update isn't signed with this app's key": "Bản cập nhật không được ký bằng khóa của ứng dụng này",
  "Couldn't reach GitHub. It will try again later.": "Không kết nối được GitHub. Sẽ thử lại sau.",
- "No my.t TV app on this box": "Không có ứng dụng TV my.t trên hộp này",
+ "No live TV app on this box": "Không có ứng dụng truyền hình trực tiếp trên hộp này",
  "{n} min left": "Còn {n} phút",
  "Glass: every app as a white mark on dark glass": "Kính: mỗi ứng dụng màu trắng trên kính tối",
  "Tinted: white marks on glass in each app's colour": "Màu: trắng trên kính theo màu ứng dụng",

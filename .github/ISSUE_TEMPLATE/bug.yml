@@ -11,7 +11,7 @@ body:
   - type: input
     attributes:
       label: Your box or TV
-      placeholder: e.g. my.t 4K box (HE2704), Android 8.0
+      placeholder: e.g. Chromecast with Google TV, Android 12
     validations:
       required: true
   - type: input

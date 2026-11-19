@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "İndirilen dosya sağlama toplamıyla eşleşmedi",
  "The update isn't signed with this app's key": "Güncelleme bu uygulamanın anahtarıyla imzalanmamış",
  "Couldn't reach GitHub. It will try again later.": "GitHub'a ulaşılamadı. Daha sonra tekrar denenecek.",
- "No my.t TV app on this box": "Bu cihazda my.t TV uygulaması yok",
+ "No live TV app on this box": "Bu cihazda canlı TV uygulaması yok",
  "{n} min left": "{n} dk kaldı",
  "Glass: every app as a white mark on dark glass": "Cam: her uygulama koyu cam üzerinde beyaz",
  "Tinted: white marks on glass in each app's colour": "Renkli: uygulamanın renginde cam üzerinde beyaz",

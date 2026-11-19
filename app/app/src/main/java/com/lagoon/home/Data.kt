@@ -33,7 +33,7 @@ class HomeApp : android.app.Application() {
         super.onCreate(); BootTrace.mark("app start")
         Safety.install(this)
         Prefs.init(this); I18n.init(this); Apps.init(this); Updater.init(this); Picks.init(this); ContinueStore.init(this); Goodnight.init(this); Ambient.init(this); Remote.start(this)
-        // First run on a my.t box: put its live TV app first in the quick access bar.
+        // First run on a box with a live TV app: put it first in the quick access bar.
         if (!Prefs.railSaved) LiveTv.find(this)?.let { Prefs.rail = listOf(it) + Apps.defaultRail().filter { p -> Apps.installed(p) } }
         BootTrace.mark("app ready")
     }
@@ -121,6 +121,26 @@ object MediaHub {
 
     private fun ctlNow() = now?.let { n -> ctrls.firstOrNull { it.packageName == n.pkg } }
 
+    /** The app's media session, if it has one open. */
+    fun controller(pkg: String): MediaController? = ctrls.firstOrNull { it.packageName == pkg }
+
+    /**
+     * Once [pkg] has a session (and, with a [title], once it has loaded that song), run [then] with it. Checked four
+     * times a second; gives up after [ms]. For commands that have to wait for an app to start or a song to load.
+     */
+    fun whenReady(pkg: String, title: String?, ms: Long, then: (MediaController) -> Unit) {
+        val until = SystemClock.uptimeMillis() + ms
+        val check = object : Runnable {
+            override fun run() {
+                val c = controller(pkg)
+                val t = c?.metadata?.let { str(it, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE) }
+                if (c != null && (title == null || t.equals(title, true))) { then(c); return }
+                if (SystemClock.uptimeMillis() < until) mainH.postDelayed(this, 250)
+            }
+        }
+        mainH.post(check)
+    }
+
     fun canSkip() = ctlNow()?.playbackState?.actions?.let { it and (PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0L } ?: false
 
     /** Phone remote: next or previous track (no-op if the app doesn't offer it). */
@@ -138,6 +158,14 @@ object MediaHub {
     }
 
     /** Diagnostics only: show a made-up track (null = back to the real sessions). */
+    /** Diagnostics: every field an app puts in its media session (the "meta" debug command). */
+    fun debugMeta(): String = ctrls.joinToString(" || ") { c ->
+        val md = c.metadata
+        c.packageName + " actions=" + c.playbackState?.actions + " " + (md?.keySet()?.joinToString(", ") { k ->
+            k.substringAfterLast('.') + "=" + (md.getString(k) ?: md.getLong(k).takeIf { it != 0L }?.toString() ?: md.getBitmap(k)?.let { "bitmap ${it.width}x${it.height}" } ?: "?")
+        } ?: "no metadata") + " desc.mediaId=" + md?.description?.mediaId + " desc.mediaUri=" + md?.description?.mediaUri + " extras=" + c.extras?.keySet()
+    }
+
     /** Diagnostics: a made-up track, treated as really playing (so previews stay silent, as they would). */
     private var faked: Now? = null
     fun debugFake(n: Now?) { faked = n; if (n == null) { now = null; refresh() } else { now = n; listeners.forEach { it() } } }
@@ -274,7 +302,7 @@ object ContinueStore {
     private fun resolveLink(pkg: String, title: String, sub: String) {
         val key = "$pkg|$title"
         if (title.isBlank() || !resolving.add(key)) return
-        val app = when (pkg) { "com.google.android.youtube.tv" -> "youtube"; "com.netflix.ninja" -> "netflix"; else -> return }
+        val app = when (pkg) { "com.google.android.youtube.tv" -> "youtube"; "com.netflix.ninja" -> "netflix"; "com.spotify.tv.android" -> "spotify"; else -> return }
         val fromPicks = Picks.items.firstOrNull { it.app == app && it.title.equals(title, true) }?.link?.substringBefore("&")
         if (fromPicks == null && app != "youtube") return
         thread(name = "cw-link") {

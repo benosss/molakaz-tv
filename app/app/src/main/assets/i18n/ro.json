@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Descărcarea nu corespunde sumei de control",
  "The update isn't signed with this app's key": "Actualizarea nu este semnată cu cheia acestei aplicații",
  "Couldn't reach GitHub. It will try again later.": "GitHub nu a putut fi contactat. Se va încerca din nou mai târziu.",
- "No my.t TV app on this box": "Nicio aplicație TV my.t pe acest dispozitiv",
+ "No live TV app on this box": "Nicio aplicație TV live pe acest dispozitiv",
  "{n} min left": "Au mai rămas {n} min",
  "Glass: every app as a white mark on dark glass": "Sticlă: fiecare aplicație în alb pe sticlă întunecată",
  "Tinted: white marks on glass in each app's colour": "Colorat: alb pe sticlă în culoarea aplicației",

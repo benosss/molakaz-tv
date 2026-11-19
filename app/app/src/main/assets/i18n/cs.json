@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Stažený soubor neodpovídá kontrolnímu součtu",
  "The update isn't signed with this app's key": "Aktualizace není podepsána klíčem této aplikace",
  "Couldn't reach GitHub. It will try again later.": "GitHub se nepodařilo kontaktovat. Zkusí to znovu později.",
- "No my.t TV app on this box": "Na tomto zařízení není aplikace my.t TV",
+ "No live TV app on this box": "Na tomto zařízení není aplikace pro živé vysílání",
  "{n} min left": "Zbývá {n} min",
  "Glass: every app as a white mark on dark glass": "Sklo: každá aplikace bíle na tmavém skle",
  "Tinted: white marks on glass in each app's colour": "Tónované: bíle na skle v barvě aplikace",

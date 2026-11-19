@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Unduhan tidak cocok dengan checksum-nya",
  "The update isn't signed with this app's key": "Pembaruan tidak ditandatangani dengan kunci aplikasi ini",
  "Couldn't reach GitHub. It will try again later.": "Tidak bisa terhubung ke GitHub. Akan dicoba lagi nanti.",
- "No my.t TV app on this box": "Tidak ada aplikasi TV my.t di boks ini",
+ "No live TV app on this box": "Tidak ada aplikasi TV langsung di boks ini",
  "{n} min left": "Sisa {n} mnt",
  "Glass: every app as a white mark on dark glass": "Kaca: tiap aplikasi putih di atas kaca gelap",
  "Tinted: white marks on glass in each app's colour": "Berwarna: putih di atas kaca warna aplikasi",

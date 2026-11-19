@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "다운로드한 파일이 체크섬과 맞지 않아요",
  "The update isn't signed with this app's key": "이 업데이트는 이 앱의 키로 서명되지 않았어요",
  "Couldn't reach GitHub. It will try again later.": "GitHub에 연결하지 못했어요. 나중에 다시 시도할게요.",
- "No my.t TV app on this box": "이 기기에 my.t TV 앱이 없습니다",
+ "No live TV app on this box": "이 기기에 실시간 TV 앱이 없습니다",
  "{n} min left": "{n}분 남음",
  "Glass: every app as a white mark on dark glass": "유리: 어두운 유리 위 흰색 로고",
  "Tinted: white marks on glass in each app's colour": "틴트: 앱 색상 유리 위 흰색 로고",

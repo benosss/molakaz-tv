@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Завантаження не збіглося з контрольною сумою",
  "The update isn't signed with this app's key": "Оновлення підписано не ключем цього застосунку",
  "Couldn't reach GitHub. It will try again later.": "Не вдалося зв'язатися з GitHub. Спробуємо пізніше.",
- "No my.t TV app on this box": "На цій приставці немає застосунку my.t TV",
+ "No live TV app on this box": "На цій приставці немає застосунку для ТБ-ефіру",
  "{n} min left": "Залишилось {n} хв",
  "Glass: every app as a white mark on dark glass": "Скло: кожен застосунок білим на темному склі",
  "Tinted: white marks on glass in each app's colour": "Кольорове: білим на склі кольору застосунку",

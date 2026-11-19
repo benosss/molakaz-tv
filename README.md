@@ -6,7 +6,8 @@
 
 **An ad-free home screen for Android TV boxes, with nature films playing behind your apps.**
 
-No sponsored rows, no account, about 1 MB. One press puts the TV's own home screen back.
+No sponsored rows, no account, about 1 MB. Open source, built with Claude Code. One press puts the TV's own home screen
+back.
 
 [**Download**](https://github.com/benosss/molakaz-tv/releases/latest) · [Install](#install) · [What it does](#what-it-does) · [Watch the film](https://benosss.github.io/molakaz-tv/film.html) · [Set-up guide (PDF)](docs/MoLakaz-TV-Setup-Guide.pdf) · [Make your own](#make-your-own)
 
@@ -26,6 +27,10 @@ The idea of swapping the home screen for an ad-free one that you can undo with o
 [Free My TV](https://github.com/simbasjungles/free-my-tv) by simbasjungles. Have a look at it too, especially on a
 Google TV, LG or Samsung TV. MoLakaz TV takes the idea in another direction: films instead of posters, previews when you
 rest on a card, and a set-up that runs from a USB stick, so friends and family can have it without a laptop.
+
+I built it with [Claude Code](https://claude.com/claude-code), Anthropic's coding agent, and it did a lot of the heavy
+lifting: the GL glass, the film pipeline, the song scenes, the 28 languages and the LG and Samsung version. I decided
+what it should be and how it should feel, tested every change on the TV, and sent things back until they were right.
 
 ## What it does
 
@@ -124,14 +129,21 @@ rains.
 
 ### Android TV and Google TV
 
-You need a TV or box on Android 8 or newer with about 600 MB free (the films are 420 MB). I test on a my.t 4K box
-(HE2704). Other boxes should work, and reports are welcome either way.
+You need a TV or box on Android 8 or newer with about 600 MB free (the films are 420 MB). I test on an older Android 8
+box, so newer ones should be fine; reports are welcome either way.
 
 - **Just the app:** download `MoLakaz-TV.apk` from the [latest release](https://github.com/benosss/molakaz-tv/releases/latest)
   and open it on the TV with a file manager (X-plore, Downloader or similar). On first run it downloads the films and
   sets itself up. After that it updates itself.
 - **With a USB stick, no computer:** the easiest way to set up a friend's or a parent's TV. Follow the
   [set-up guide (PDF)](docs/MoLakaz-TV-Setup-Guide.pdf); [`kit/make_usb_kit.sh`](kit/make_usb_kit.sh) prepares the stick.
+- **With an AI coding assistant:** turn on USB debugging on the TV (Settings > About > press Build 7 times, then
+  Developer options > USB debugging), open [Claude Code](https://claude.com/claude-code) on a computer on the same
+  Wi-Fi, and say:
+  > Install MoLakaz TV (github.com/benosss/molakaz-tv) on my TV at 192.168.1.20.
+
+  It downloads the release, connects to the TV and installs it, and asks before anything important. Then press OK on
+  the TV to finish.
 - **From a computer:**
   ```bash
   adb connect 192.168.1.20:5555          # your TV's IP (Settings > Network)
@@ -165,7 +177,17 @@ Fork it, change it, rename it, put it on your family's TVs. It's MIT licensed, s
 LICENSE file with your copy and that's it. If you build something on top of it, I'd really like to see it. Open an
 issue and show me.
 
-Where things are:
+The quickest way to change it is to ask. Clone the repo, open [Claude Code](https://claude.com/claude-code) in it and
+say what you want. It finds its way around the code, builds it, and can put it on your TV over adb. Try:
+
+- *"Add Crunchyroll to the bar and give its cards their own colour."*
+- *"Use the videos in ~/Videos as the films, and make the glass keyframes for them."*
+- *"Rename it to Casa TV and use this logo."*
+- *"Add Catalan."*
+- *"Show the temperature in Fahrenheit."*
+- *"Build it and install it on my TV at 192.168.1.20."*
+
+If you'd rather find your own way, here's where things are:
 
 - **The apps on the bar** and their order: [`Apps.kt`](app/app/src/main/java/com/lagoon/home/Apps.kt).
 - **The films:** each one is an MP4 plus blurred keyframes for the glass, listed in [`films/scenes.json`](films/scenes.json).

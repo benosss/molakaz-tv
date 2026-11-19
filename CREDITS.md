@@ -62,5 +62,5 @@ From [Wikimedia Commons](https://commons.wikimedia.org):
 - [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0), to talk to the box's own adb
 - [ZXing](https://github.com/zxing/zxing) (Apache 2.0), for the phone remote's QR code
 
-MoLakaz TV is not affiliated with Netflix, YouTube, Spotify, Amazon, Apple, Plex, Google, Mauritius Telecom or any
-streaming service. App names and logos belong to their owners.
+MoLakaz TV is not affiliated with Netflix, YouTube, Spotify, Amazon, Apple, Plex, Google, LG, Samsung, any TV operator
+or any streaming service. App names and logos belong to their owners.

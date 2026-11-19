@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "下载内容与校验值不符",
  "The update isn't signed with this app's key": "更新未使用本应用的密钥签名",
  "Couldn't reach GitHub. It will try again later.": "无法连接 GitHub，稍后会再试。",
- "No my.t TV app on this box": "此盒子上没有 my.t TV 应用",
+ "No live TV app on this box": "此盒子上没有直播电视应用",
  "{n} min left": "剩余 {n} 分钟",
  "Glass: every app as a white mark on dark glass": "玻璃：深色玻璃上的白色标志",
  "Tinted: white marks on glass in each app's colour": "彩色：应用颜色玻璃上的白色标志",

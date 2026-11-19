@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Lataus ei vastannut tarkistussummaa",
  "The update isn't signed with this app's key": "Päivitystä ei ole allekirjoitettu tämän sovelluksen avaimella",
  "Couldn't reach GitHub. It will try again later.": "GitHubiin ei saatu yhteyttä. Yritetään myöhemmin uudelleen.",
- "No my.t TV app on this box": "Tässä laitteessa ei ole my.t-TV-sovellusta",
+ "No live TV app on this box": "Tässä laitteessa ei ole suoran TV:n sovellusta",
  "{n} min left": "{n} min jäljellä",
  "Glass: every app as a white mark on dark glass": "Lasi: jokainen sovellus valkoisena tummalla lasilla",
  "Tinted: white marks on glass in each app's colour": "Sävytetty: valkoinen sovelluksen värisellä lasilla",

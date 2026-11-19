@@ -25,6 +25,8 @@ What's coming to MoLakaz TV, roughly in order. Ideas are welcome in
 
 ## Done
 
+- [x] **1.1.2**: selecting a Spotify song in Continue watching or Fresh picks plays it in Spotify. The song Spotify
+      still has carries on where it stopped; any other starts playing, and a Continue watching one jumps to where you left it.
 - [x] **1.1.1**: resting on the song that's playing shows it as Now playing (one music panel, not two), song scenes
       keep moving instead of sometimes freezing on their first frame, Icon style shows its change right away in
       Settings, and HDMI inputs stay on the bar when you reorder apps.

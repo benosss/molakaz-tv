@@ -14,10 +14,12 @@ import java.io.File
  *
  *   {"apps": [{"pkg": "com.example.tv", "name": "Example", "rail": true, "continue": true, "trailers": true,
  *              "colors": ["#1A1A22", "#08080B"]}]}
+ *
+ * "liveTv": true marks a TV operator's live TV app: the remote's TV button opens it, and a new bar starts with it.
  */
 object Apps {
     class App(val pkg: String, val name: String, val rail: Boolean = false, val watch: Boolean = false,
-              val trailers: Boolean = false, val colors: IntArray? = null, val extra: Boolean = false)
+              val trailers: Boolean = false, val colors: IntArray? = null, val extra: Boolean = false, val liveTv: Boolean = false)
 
     private fun c(a: Long, b: Long) = intArrayOf(a.toInt(), b.toInt())
 
@@ -51,7 +53,7 @@ object Apps {
                 val cs = o.optJSONArray("colors")
                 App(o.getString("pkg"), o.optString("name", o.getString("pkg")), o.optBoolean("rail"), o.optBoolean("continue"),
                     o.optBoolean("trailers"), if (cs != null && cs.length() == 2) intArrayOf(Color.parseColor(cs.getString(0)), Color.parseColor(cs.getString(1))) else null,
-                    extra = true)
+                    extra = true, liveTv = o.optBoolean("liveTv"))
             }
         }.getOrElse { emptyList() }
         all = BUILT_IN.filter { b -> extra.none { it.pkg == b.pkg } } + extra
@@ -77,6 +79,8 @@ object Apps {
     /** Hidden on the project page's screenshots. */
     fun hidden(pkg: String) = showcase && all.any { it.pkg == pkg && it.extra }
     fun extras(): List<App> = all.filter { it.extra }
+    /** Live TV apps named in extra_apps.json, in their order. */
+    fun liveTv(): List<String> = all.filter { it.liveTv }.map { it.pkg }
 
     /** The quick-access bar of a box that hasn't been set up yet (installed apps only, the bar takes the first six). */
     fun defaultRail(): List<String> = if (showcase) SHOWCASE_RAIL else all.filter { it.rail }.map { it.pkg }

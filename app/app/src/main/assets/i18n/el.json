@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Η λήψη δεν ταίριαζε με το άθροισμα ελέγχου",
  "The update isn't signed with this app's key": "Η ενημέρωση δεν είναι υπογεγραμμένη με το κλειδί αυτής της εφαρμογής",
  "Couldn't reach GitHub. It will try again later.": "Δεν ήταν δυνατή η επικοινωνία με το GitHub. Θα δοκιμάσει ξανά αργότερα.",
- "No my.t TV app on this box": "Δεν υπάρχει εφαρμογή my.t TV σε αυτή τη συσκευή",
+ "No live TV app on this box": "Δεν υπάρχει εφαρμογή ζωντανής TV σε αυτή τη συσκευή",
  "{n} min left": "Απομένουν {n} λεπτά",
  "Glass: every app as a white mark on dark glass": "Γυαλί: κάθε εφαρμογή λευκή σε σκούρο γυαλί",
  "Tinted: white marks on glass in each app's colour": "Χρωματιστό: λευκό σε γυαλί στο χρώμα της εφαρμογής",

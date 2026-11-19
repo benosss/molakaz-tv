@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.media.session.MediaController
 import android.net.Uri
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
@@ -365,8 +366,8 @@ class HomeActivity : Activity() {
                 else -> null
             }
             // A YouTube pick that's been previewed shows how far, and opens there.
-            ShelfItem(Picks.localize(p.badge), p.title, Picks.localize(p.sub), yt?.let { Watched.fraction(it) } ?: -1f, pic, tint, pv) {
-                Picks.open(this, p, yt?.let { Watched.resume(it) } ?: -1)
+            ShelfItem(Picks.localize(p.badge), p.title, Picks.localize(p.sub), yt?.let { Watched.fraction(it) } ?: -1f, pic, tint, pv) { v ->
+                if (p.app == "spotify") playSong(p.title, p.sub, SpotifyTracks.id(p.link), null, v) else Picks.open(this, p, yt?.let { Watched.resume(it) } ?: -1)
             }
         }
         return ContinueStore.items.filterNot { it.finished || Apps.hidden(it.pkg) }.map { it ->
@@ -832,6 +833,7 @@ class HomeActivity : Activity() {
             when (cmd) {
                 "np" -> android.util.Log.i("MediaHub", "state now=${MediaHub.now?.title} playing=${MediaHub.now?.playing} npShown=$npShown vis=${np.visibility} alpha=${np.alpha} inSaver=$inSaver resumed=$resumed | ${music.debugState()}")
                 "viz" -> vizProbe()
+                "meta" -> android.util.Log.i("MediaHub", "meta " + MediaHub.debugMeta())
                 "vizdemo" -> vizDemo()
                 "npdemo" -> npDemo(i)
                 "veil" -> carousel.debugVeil(i.getFloatExtra("v", 1f), 9000)
@@ -954,6 +956,10 @@ class HomeActivity : Activity() {
     // ---------- helpers ----------
 
     private fun resume(item: ContinueStore.Item, from: View) {
+        if (item.pkg == SPOTIFY) {
+            val at = item.pos.takeIf { it > 10_000 && (item.dur <= 0 || it < item.dur - 10_000) }
+            playSong(item.title, item.sub, SpotifyTracks.id(item.link), at, from); return
+        }
         // YouTube honours &t=: carry on from where its preview got to (if it played since), else a few seconds before
         // where it stopped.
         val link = item.link?.let { l ->
@@ -974,6 +980,39 @@ class HomeActivity : Activity() {
     }
 
     private fun stripT(link: String) = link.replace(Regex("""[?&]t=\d+s?"""), "")
+
+    /**
+     * Play a song in Spotify and open it. Spotify's TV app has no track id in its media session and only opens a session
+     * once something plays, so:
+     *  - the song Spotify has loaded (playing, paused, or closed since): carry on from where it is;
+     *  - Spotify's session is up and we have the track's id (Fresh picks): play it through the session;
+     *  - otherwise a search link for "title artist": Spotify's TV app plays the top result straight away (it does, unlike
+     *    the phone app), which is the song itself.
+     * Then, for Continue watching, jump to where it was left ([atMs]) once Spotify reports that song.
+     */
+    private fun playSong(title: String, artist: String, track: String?, atMs: Long?, from: View) {
+        val n = MediaHub.now
+        val ctl = MediaHub.controller(SPOTIFY)
+        val opts = ActivityOptions.makeScaleUpAnimation(from, 0, 0, from.width, from.height).toBundle()
+        val how = when {
+            n != null && n.pkg == SPOTIFY && n.title.equals(title, true) -> {
+                // A closed session still takes the play key: Android sends it to the last music app, which resumes.
+                if (!n.playing) ctl?.transportControls?.play() ?: MediaHub.toggle()
+                launch(SPOTIFY, from); "resume"
+            }
+            ctl != null && track != null -> {
+                ctl.transportControls.playFromUri(Uri.parse("spotify:track:$track"), null)
+                launch(SPOTIFY, from); "track"
+            }
+            else -> {
+                val q = java.net.URLEncoder.encode("$title $artist".trim(), "UTF-8").replace("+", "%20")
+                val i = Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:$q")).setPackage(SPOTIFY).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (runCatching { startActivity(i, opts) }.isSuccess) "search" else { launch(SPOTIFY, from); "open" }
+            }
+        }
+        android.util.Log.i("Song", "$how: $title / $artist" + (track?.let { " ($it)" } ?: "") + (atMs?.let { " at ${it / 1000}s" } ?: ""))
+        if (atMs != null && how != "resume") MediaHub.whenReady(SPOTIFY, title, 20_000) { it.transportControls.seekTo(atMs) }
+    }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
@@ -1035,6 +1074,7 @@ class HomeActivity : Activity() {
     }.getOrNull()
 
     companion object {
+        const val SPOTIFY = "com.spotify.tv.android"
         val APP_PKG = mapOf("netflix" to "com.netflix.ninja", "youtube" to "com.google.android.youtube.tv", "spotify" to "com.spotify.tv.android")
     }
 }

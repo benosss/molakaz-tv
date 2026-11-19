@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "डाउनलोड चेकसम से मेल नहीं खाया",
  "The update isn't signed with this app's key": "अपडेट इस ऐप की कुंजी से साइन नहीं किया गया है",
  "Couldn't reach GitHub. It will try again later.": "GitHub तक नहीं पहुंच सके। बाद में फिर कोशिश करेंगे।",
- "No my.t TV app on this box": "इस बॉक्स पर my.t TV ऐप नहीं है",
+ "No live TV app on this box": "इस बॉक्स पर लाइव टीवी ऐप नहीं है",
  "{n} min left": "{n} मिनट बाकी",
  "Glass: every app as a white mark on dark glass": "ग्लास: गहरे ग्लास पर हर ऐप सफ़ेद में",
  "Tinted: white marks on glass in each app's colour": "टिंटेड: ऐप के रंग के ग्लास पर सफ़ेद",

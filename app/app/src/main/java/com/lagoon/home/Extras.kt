@@ -31,17 +31,20 @@ import kotlin.math.roundToInt
 
 private val mainH = Handler(Looper.getMainLooper())
 
-/** my.t live TV: found by package (operator box and app versions), or by an app whose name is "my.t". */
+/**
+ * The box's live TV app, for the TV button and the first spot on a new bar: an operator's TV app listed in
+ * extra_apps.json ("liveTv": true, see [Apps]), else Android's own Live Channels, else an app called "Live TV" or "IPTV".
+ */
 object LiveTv {
-    private val KNOWN = listOf("com.mttv.muott", "com.zte.iptvclient.android.mu", "mu.mt.iptv", "mu.mt.tv", "com.google.android.tv")
+    private const val LIVE_CHANNELS = "com.google.android.tv"
 
     fun find(ctx: Context): String? {
         val pm = ctx.packageManager
-        KNOWN.firstOrNull { launchIntent(pm, it) != null }?.let { return it }
+        (Apps.liveTv() + LIVE_CHANNELS).firstOrNull { launchIntent(pm, it) != null }?.let { return it }
         for (cat in arrayOf(Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER))
             for (ri in pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(cat), 0)) {
                 val label = ri.loadLabel(pm).toString().lowercase()
-                if (Regex("""\bmy\.?t\b""").containsMatchIn(label) && "care" !in label && "money" !in label) return ri.activityInfo.packageName
+                if (Regex("""\b(live ?tv|iptv)\b""").containsMatchIn(label)) return ri.activityInfo.packageName
             }
         return null
     }

@@ -322,7 +322,7 @@ class HomeSettings(ctx: Context, private val onRail: () -> Unit, private val onP
     }
 
     private fun liveSub(pkg: String?) = when {
-        pkg == null -> tr("No my.t TV app on this box")
+        pkg == null -> tr("No live TV app on this box")
         pkg in Prefs.rail -> tr("{app} · on the TV button", "app" to LiveTv.label(context, pkg))
         else -> tr("{app} · select to add", "app" to LiveTv.label(context, pkg))
     }

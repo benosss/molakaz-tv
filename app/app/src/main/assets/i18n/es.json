@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "La descarga no coincide con su suma de verificación",
  "The update isn't signed with this app's key": "La actualización no está firmada con la clave de esta app",
  "Couldn't reach GitHub. It will try again later.": "No se pudo conectar con GitHub. Se reintentará más tarde.",
- "No my.t TV app on this box": "No hay app de TV my.t en este equipo",
+ "No live TV app on this box": "No hay app de TV en directo en este equipo",
  "{n} min left": "Quedan {n} min",
  "Glass: every app as a white mark on dark glass": "Cristal: cada app en blanco sobre cristal oscuro",
  "Tinted: white marks on glass in each app's colour": "Tintado: en blanco sobre cristal del color de cada app",

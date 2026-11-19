@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "ダウンロードしたファイルがチェックサムと一致しませんでした",
  "The update isn't signed with this app's key": "このアップデートはこのアプリの鍵で署名されていません",
  "Couldn't reach GitHub. It will try again later.": "GitHubに接続できませんでした。後でもう一度試します。",
- "No my.t TV app on this box": "このボックスには my.t TV アプリがありません",
+ "No live TV app on this box": "このボックスにはライブ TV アプリがありません",
  "{n} min left": "残り {n} 分",
  "Glass: every app as a white mark on dark glass": "ガラス：暗いガラスに白いマーク",
  "Tinted: white marks on glass in each app's colour": "ティント：アプリの色のガラスに白いマーク",

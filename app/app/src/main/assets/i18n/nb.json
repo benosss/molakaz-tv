@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "Nedlastingen samsvarte ikke med sjekksummen",
  "The update isn't signed with this app's key": "Oppdateringen er ikke signert med denne appens nøkkel",
  "Couldn't reach GitHub. It will try again later.": "Kunne ikke nå GitHub. Den prøver igjen senere.",
- "No my.t TV app on this box": "Ingen my.t-TV-app på denne boksen",
+ "No live TV app on this box": "Ingen direkte-TV-app på denne boksen",
  "{n} min left": "{n} min igjen",
  "Glass: every app as a white mark on dark glass": "Glass: hver app i hvitt på mørkt glass",
  "Tinted: white marks on glass in each app's colour": "Farget: hvitt på glass i appens farge",

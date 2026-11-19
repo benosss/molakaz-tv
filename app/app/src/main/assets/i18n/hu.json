@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "A letöltés nem egyezik az ellenőrző összeggel",
  "The update isn't signed with this app's key": "A frissítés nincs aláírva az alkalmazás kulcsával",
  "Couldn't reach GitHub. It will try again later.": "A GitHub nem érhető el. Később újra megpróbálja.",
- "No my.t TV app on this box": "Nincs my.t TV alkalmazás ezen az eszközön",
+ "No live TV app on this box": "Nincs élő TV alkalmazás ezen az eszközön",
  "{n} min left": "Még {n} perc",
  "Glass: every app as a white mark on dark glass": "Üveg: minden alkalmazás fehéren, sötét üvegen",
  "Tinted: white marks on glass in each app's colour": "Színezett: fehéren, az alkalmazás színű üvegen",

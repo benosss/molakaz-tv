@@ -181,7 +181,7 @@
  "The download didn't match its checksum": "ไฟล์ที่ดาวน์โหลดไม่ตรงกับ checksum",
  "The update isn't signed with this app's key": "อัปเดตนี้ไม่ได้ลงนามด้วยคีย์ของแอปนี้",
  "Couldn't reach GitHub. It will try again later.": "เชื่อมต่อ GitHub ไม่ได้ จะลองใหม่ภายหลัง",
- "No my.t TV app on this box": "กล่องนี้ไม่มีแอป my.t TV",
+ "No live TV app on this box": "กล่องนี้ไม่มีแอปทีวีสด",
  "{n} min left": "เหลือ {n} นาที",
  "Glass: every app as a white mark on dark glass": "กระจก: แต่ละแอปเป็นสีขาวบนกระจกเข้ม",
  "Tinted: white marks on glass in each app's colour": "สี: สีขาวบนกระจกสีของแอป",
